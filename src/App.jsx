@@ -362,17 +362,16 @@ export default function App() {
           {/* Mobile header */}
           <div className="flex items-center justify-between mb-4 md:hidden">
             <h1 className="text-xs font-semibold tracking-widest text-[#7C9A7E] uppercase">My Lists</h1>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-[#9BAA9C]">{tasks.filter(t => !t.archived).length} active</span>
-              <button
-                onClick={() => navTo('settings')}
-                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
-                  isSettings ? 'bg-[#7C9A7E22] text-[#4A6B4C]' : 'text-[#9BAA9C] hover:text-[#637265]'
-                }`}
-              >
-                <Settings size={20} />
-              </button>
-            </div>
+            <button
+              onClick={() => navTo('settings')}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${
+                isSettings
+                  ? 'bg-[#7C9A7E] text-white shadow-sm'
+                  : 'bg-[#EEF3EC] text-[#7C9A7E]'
+              }`}
+            >
+              <Settings size={20} strokeWidth={isSettings ? 2.2 : 1.75} />
+            </button>
           </div>
 
           {/* Settings page */}
