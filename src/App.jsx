@@ -17,7 +17,7 @@ import {
   Coffee, Camera, Plane, Heart, ShoppingBag, Leaf, Utensils, Laptop,
   Sparkles, Bike, Baby, Pill, PawPrint, Sunrise, Wallet, Globe,
   // UI icons
-  Plus, Search, Pencil, X, GripVertical,
+  Plus, Search, Pencil, X, GripVertical, Settings,
 } from 'lucide-react'
 
 // ── Icon registry ──────────────────────────────────────────────────────────
@@ -141,7 +141,8 @@ export default function App() {
   )
 
   const isArchive    = active === 'archive'
-  const isSearching  = search.trim().length > 0
+  const isSettings   = active === 'settings'
+  const isSearching  = search.trim().length > 0 && !isSettings
   const cat          = categories.find(c => c.id === active)
   const archiveCount = tasks.filter(t => t.archived).length
   const activeTasks  = tasks.filter(t => t.category === active && !t.archived)
@@ -170,14 +171,22 @@ export default function App() {
     })
   }
 
+  // shared helper — creates the category object, returns id
+  const createCat = ({ name, iconName, color, light, dark }) => {
+    const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now()
+    setCategories(p => [...p, { id, name, iconName, color, light, dark, custom: true }])
+    return id
+  }
+
   const addCategory = e => {
     e.preventDefault()
     if (!newCatName.trim()) return
-    const id = newCatName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now()
-    setCategories(p => [...p, { id, name: newCatName.trim(), iconName: newCatIcon, ...newCatColor, custom: true }])
+    const id = createCat({ name: newCatName.trim(), iconName: newCatIcon, ...newCatColor })
     setNewCatName(''); setNewCatColor(PALETTE[0]); setNewCatIcon(CUSTOM_ICONS[0]); setShowNewCat(false)
     navTo(id)
   }
+  const updateCategory = (id, updates) =>
+    setCategories(p => p.map(c => c.id === id ? { ...c, ...updates } : c))
   const deleteCategory = id => {
     setCategories(p => p.filter(c => c.id !== id))
     setTasks(p => p.filter(t => t.category !== id))
@@ -200,29 +209,20 @@ export default function App() {
         <nav className="flex-1 px-2.5 space-y-0.5 overflow-y-auto pb-2">
           {categories.map(c => {
             const count = tasks.filter(t => t.category === c.id && !t.archived).length
-            const on    = active === c.id && !isArchive && !isSearching
+            const on    = active === c.id && !isArchive && !isSettings && !isSearching
             return (
-              <div key={c.id} className="group/nav relative">
-                <button
-                  onClick={() => navTo(c.id)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
-                  style={on ? { backgroundColor: c.color + '22', color: c.dark } : { color: '#637265' }}
-                >
-                  <CatIcon cat={c} size={16} style={{ color: on ? c.color : '#9BAA9C', flexShrink: 0 }} />
-                  <span className={`flex-1 text-[13px] ${on ? 'font-semibold' : 'font-medium'}`}>{c.name}</span>
-                  {count > 0 && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: c.color }}>{count}</span>
-                  )}
-                </button>
-                {c.custom && (
-                  <button
-                    onClick={() => deleteCategory(c.id)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 opacity-0 group-hover/nav:opacity-100 text-[#C8BEB4] hover:text-rose-400 transition-all w-6 h-6 flex items-center justify-center rounded"
-                  >
-                    <X size={13} />
-                  </button>
+              <button
+                key={c.id}
+                onClick={() => navTo(c.id)}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
+                style={on ? { backgroundColor: c.color + '22', color: c.dark } : { color: '#637265' }}
+              >
+                <CatIcon cat={c} size={16} style={{ color: on ? c.color : '#9BAA9C', flexShrink: 0 }} />
+                <span className={`flex-1 text-[13px] ${on ? 'font-semibold' : 'font-medium'}`}>{c.name}</span>
+                {count > 0 && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: c.color }}>{count}</span>
                 )}
-              </div>
+              </button>
             )
           })}
 
@@ -258,8 +258,19 @@ export default function App() {
           </button>
         </nav>
 
-        <div className="mx-4 py-4 border-t border-[#D5E2D4]">
-          <p className="text-[11px] text-[#9BAA9C] text-center">{tasks.filter(t => !t.archived).length} active tasks</p>
+        <div className="mx-4 py-3 border-t border-[#D5E2D4] flex items-center justify-between">
+          <p className="text-[11px] text-[#9BAA9C]">{tasks.filter(t => !t.archived).length} active tasks</p>
+          <button
+            onClick={() => navTo('settings')}
+            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
+              isSettings
+                ? 'bg-[#7C9A7E22] text-[#4A6B4C]'
+                : 'text-[#9BAA9C] hover:text-[#637265] hover:bg-[#E5EBE4]'
+            }`}
+            title="Settings"
+          >
+            <Settings size={14} />
+          </button>
         </div>
       </aside>
 
@@ -270,11 +281,32 @@ export default function App() {
           {/* Mobile header */}
           <div className="flex items-center justify-between mb-4 md:hidden">
             <h1 className="text-xs font-semibold tracking-widest text-[#7C9A7E] uppercase">My Lists</h1>
-            <span className="text-[11px] text-[#9BAA9C]">{tasks.filter(t => !t.archived).length} active</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[#9BAA9C]">{tasks.filter(t => !t.archived).length} active</span>
+              <button
+                onClick={() => navTo('settings')}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all ${
+                  isSettings ? 'bg-[#7C9A7E22] text-[#4A6B4C]' : 'text-[#9BAA9C] hover:text-[#637265]'
+                }`}
+              >
+                <Settings size={16} />
+              </button>
+            </div>
           </div>
 
-          {/* Search */}
-          <div className="mb-5 relative">
+          {/* Settings page */}
+          {isSettings && (
+            <SettingsPage
+              categories={categories}
+              tasks={tasks}
+              onUpdate={updateCategory}
+              onDelete={deleteCategory}
+              onAdd={createCat}
+            />
+          )}
+
+          {/* Search — hidden on Settings page */}
+          {!isSettings && <div className="mb-5 relative">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9BAA9C]" />
             <input
               value={search}
@@ -288,7 +320,7 @@ export default function App() {
                 <X size={16} />
               </button>
             )}
-          </div>
+          </div>}
 
           {/* ── Search Results ── */}
           {isSearching && (
@@ -697,6 +729,217 @@ function NewCatForm({ name, setName, color, setColor, icon, setIcon, onSubmit, o
         </button>
       </div>
     </form>
+  )
+}
+
+// ── Settings Page ──────────────────────────────────────────────────────────
+
+function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd }) {
+  const [editingId, setEditingId]   = useState(null)
+  const [editName, setEditName]     = useState('')
+  const [editColor, setEditColor]   = useState(PALETTE[0])
+  const [editIcon, setEditIcon]     = useState(CUSTOM_ICONS[0])
+  const [deletingId, setDeletingId] = useState(null)
+  const [showAdd, setShowAdd]       = useState(false)
+  const [addName, setAddName]       = useState('')
+  const [addColor, setAddColor]     = useState(PALETTE[0])
+  const [addIcon, setAddIcon]       = useState(CUSTOM_ICONS[0])
+
+  const startEdit = cat => {
+    setEditingId(cat.id)
+    setEditName(cat.name)
+    setEditColor(PALETTE.find(p => p.color === cat.color) ?? { color: cat.color, light: cat.light, dark: cat.dark })
+    setEditIcon(cat.iconName ?? CUSTOM_ICONS[0])
+    setDeletingId(null)
+    setShowAdd(false)
+  }
+
+  const saveEdit = () => {
+    if (!editName.trim()) return
+    onUpdate(editingId, { name: editName.trim(), iconName: editIcon, ...editColor })
+    setEditingId(null)
+  }
+
+  const handleAdd = e => {
+    e.preventDefault()
+    if (!addName.trim()) return
+    onAdd({ name: addName.trim(), iconName: addIcon, ...addColor })
+    setAddName(''); setAddColor(PALETTE[0]); setAddIcon(CUSTOM_ICONS[0]); setShowAdd(false)
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="flex items-center gap-2.5 mb-7">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#EEF3EC]">
+          <Settings size={20} style={{ color: '#7C9A7E' }} strokeWidth={1.75} />
+        </div>
+        <h2 className="text-xl font-semibold text-[#3D4A3E]">Settings</h2>
+      </div>
+
+      {/* Lists section */}
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#9BAA9C] mb-3">Lists</p>
+      <div className="space-y-2">
+        {categories.map(cat => {
+          const activeCount   = tasks.filter(t => t.category === cat.id && !t.archived).length
+          const archivedCount = tasks.filter(t => t.category === cat.id &&  t.archived).length
+          const isEditing  = editingId  === cat.id
+          const isDeleting = deletingId === cat.id
+          const previewCat = isEditing
+            ? { iconName: editIcon, color: editColor.color, light: editColor.light, dark: editColor.dark }
+            : cat
+
+          return (
+            <div key={cat.id} className="bg-white rounded-2xl border border-[#E0EAE0] shadow-sm overflow-hidden">
+
+              {/* Row */}
+              {!isDeleting && (
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors" style={{ backgroundColor: previewCat.light ?? cat.light }}>
+                    <CatIcon cat={previewCat} size={18} style={{ color: previewCat.color }} strokeWidth={1.75} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-medium text-[#3D4A3E] truncate">{cat.name}</p>
+                    <p className="text-[11px] text-[#9BAA9C]">
+                      {activeCount} active{archivedCount > 0 ? ` · ${archivedCount} archived` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => isEditing ? setEditingId(null) : startEdit(cat)}
+                      className="h-8 px-3 rounded-lg text-[12px] font-medium transition-all"
+                      style={isEditing
+                        ? { color: '#9BAA9C', backgroundColor: '#F0F2EF' }
+                        : { color: '#7C9A7E', backgroundColor: '#EEF3EC' }
+                      }
+                    >
+                      {isEditing ? 'Cancel' : 'Edit'}
+                    </button>
+                    <button
+                      onClick={() => { setDeletingId(cat.id); setEditingId(null) }}
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 hover:bg-rose-50 transition-all"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Inline edit panel */}
+              {isEditing && !isDeleting && (
+                <div className="px-4 pb-4 border-t border-[#F0F4EF] pt-3 space-y-3">
+                  <input
+                    autoFocus
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingId(null) }}
+                    placeholder="List name"
+                    className="w-full px-3 py-2.5 rounded-xl border text-[14px] text-[#3D4A3E] outline-none transition-all"
+                    style={{ borderColor: editColor.color + '88', fontSize: 16 }}
+                  />
+
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9BAA9C] mb-2">Color</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {PALETTE.map(p => (
+                        <button
+                          key={p.color} type="button" onClick={() => setEditColor(p)}
+                          className="w-6 h-6 rounded-full transition-transform hover:scale-110 active:scale-95"
+                          style={{ backgroundColor: p.color, outline: editColor.color === p.color ? `2.5px solid ${p.color}` : 'none', outlineOffset: 2 }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9BAA9C] mb-2">Icon</p>
+                    <div className="grid grid-cols-8 gap-1">
+                      {CUSTOM_ICONS.map(name => {
+                        const Ic  = ICON_MAP[name]
+                        const sel = editIcon === name
+                        if (!Ic) return null
+                        return (
+                          <button
+                            key={name} type="button" onClick={() => setEditIcon(name)}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90"
+                            style={{
+                              backgroundColor: sel ? editColor.color + '22' : 'transparent',
+                              color: sel ? editColor.color : '#9BAA9C',
+                              outline: sel ? `1.5px solid ${editColor.color}55` : 'none',
+                            }}
+                          >
+                            <Ic size={15} strokeWidth={1.8} />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={saveEdit}
+                    className="w-full py-2.5 rounded-xl text-white text-[13px] font-semibold hover:opacity-80 active:scale-[0.98] transition-all"
+                    style={{ backgroundColor: editColor.color }}
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              )}
+
+              {/* Delete confirmation */}
+              {isDeleting && (
+                <div className="px-4 py-4 bg-rose-50">
+                  <p className="text-[13px] font-semibold text-rose-700 mb-0.5">Delete "{cat.name}"?</p>
+                  {(activeCount + archivedCount) > 0 && (
+                    <p className="text-[12px] text-rose-500 mb-3">
+                      {activeCount + archivedCount} task{activeCount + archivedCount !== 1 ? 's' : ''} will be permanently deleted.
+                    </p>
+                  )}
+                  {(activeCount + archivedCount) === 0 && <div className="mb-3" />}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { onDelete(cat.id); setDeletingId(null) }}
+                      className="flex-1 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-[13px] font-semibold transition-colors"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => setDeletingId(null)}
+                      className="flex-1 py-2 rounded-xl bg-white border border-[#E0EAE0] text-[#9BAA9C] text-[13px] font-medium hover:bg-[#F8F6F2] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        {/* Add new list */}
+        <div className="bg-white rounded-2xl border border-dashed border-[#C8DAC7] shadow-sm overflow-hidden">
+          {showAdd ? (
+            <div className="p-4">
+              <p className="text-[12px] font-semibold text-[#5A6B5C] mb-3">New List</p>
+              <NewCatForm
+                name={addName} setName={setAddName}
+                color={addColor} setColor={setAddColor}
+                icon={addIcon}  setIcon={setAddIcon}
+                onSubmit={handleAdd}
+                onClose={() => { setShowAdd(false); setAddName('') }}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => { setShowAdd(true); setEditingId(null); setDeletingId(null) }}
+              className="w-full flex items-center gap-2.5 px-4 py-3.5 text-[#9BAA9C] hover:text-[#7C9A7E] hover:bg-[#F4F8F4] transition-all"
+            >
+              <Plus size={16} />
+              <span className="text-[13px] font-medium">New List</span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
 
