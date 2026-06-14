@@ -250,6 +250,7 @@ export default function App() {
     const newCat = { id, name, iconName, color, light, dark, custom: true }
     setCategories(p => [...p, newCat])
     supabase.from('categories').insert(catToDb(newCat, categories.length))
+      .then(({ error }) => { if (error) console.error('[supabase] create cat:', error) })
     return id
   }
 
@@ -262,6 +263,7 @@ export default function App() {
     if (updates.light    !== undefined) dbUp.light     = updates.light
     if (updates.dark     !== undefined) dbUp.dark      = updates.dark
     supabase.from('categories').update(dbUp).eq('id', id)
+      .then(({ error }) => { if (error) console.error('[supabase] update cat:', error) })
   }
 
   const deleteCategory = id => {
@@ -269,7 +271,9 @@ export default function App() {
     setTasks(p => p.filter(t => t.category !== id))
     if (active === id) setActive('general')
     supabase.from('categories').delete().eq('id', id)
+      .then(({ error }) => { if (error) console.error('[supabase] delete cat:', error) })
     supabase.from('tasks').delete().eq('category', id)
+      .then(({ error }) => { if (error) console.error('[supabase] delete cat tasks:', error) })
   }
 
   const reorderCategories = newOrder => {
@@ -385,10 +389,12 @@ export default function App() {
               onClearArchive={() => {
                 setTasks(p => p.filter(t => !t.archived))
                 supabase.from('tasks').delete().eq('archived', true)
+                  .then(({ error }) => { if (error) console.error('[supabase] clear archive:', error) })
               }}
               onClearCatArchive={catId => {
                 setTasks(p => p.filter(t => !(t.archived && t.category === catId)))
                 supabase.from('tasks').delete().eq('archived', true).eq('category', catId)
+                  .then(({ error }) => { if (error) console.error('[supabase] clear cat archive:', error) })
               }}
             />
           )}
@@ -450,7 +456,7 @@ export default function App() {
                   <p className="text-xs text-[#9BAA9C] mt-0.5">{archiveCount} completed</p>
                 </div>
                 {archiveCount > 0 && (
-                  <button onClick={() => { setTasks(p => p.filter(t => !t.archived)); supabase.from('tasks').delete().eq('archived', true) }} className="ml-auto text-xs text-[#CABFB5] hover:text-rose-400 py-2 px-1 transition-colors">
+                  <button onClick={() => { setTasks(p => p.filter(t => !t.archived)); supabase.from('tasks').delete().eq('archived', true).then(({ error }) => { if (error) console.error('[supabase] clear archive:', error) }) }} className="ml-auto text-xs text-[#CABFB5] hover:text-rose-400 py-2 px-1 transition-colors">
                     Clear all
                   </button>
                 )}
