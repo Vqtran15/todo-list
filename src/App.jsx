@@ -529,10 +529,11 @@ export default function App() {
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={activeTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-2">
-                      {activeTasks.map(t => (
+                      {activeTasks.map((t, i) => (
                         <SortableTaskRow
                           key={t.id} task={t} cat={cat}
                           isNew={t.id === newTaskId}
+                          staggerIndex={i}
                           isEditing={editingId === t.id} editText={editText}
                           onEditChange={setEditText} onStartEdit={startEdit}
                           onSaveEdit={saveEdit} onCancelEdit={cancelEdit}
@@ -627,11 +628,18 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
 function SortableTaskRow(props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: props.task.id })
+  const delay = props.isNew ? 0 : Math.min(props.staggerIndex, 10) * 40
+
   return (
     <div
       ref={setNodeRef}
-      className={props.isNew ? 'task-entering' : ''}
-      style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 'auto' }}
+      className={props.isNew ? 'task-entering' : 'task-stagger-in'}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : 'auto',
+        animationDelay: `${delay}ms`,
+      }}
     >
       <TaskRow {...props} isDragging={isDragging} dragListeners={listeners} dragAttributes={attributes} />
     </div>
