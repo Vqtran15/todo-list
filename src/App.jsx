@@ -345,7 +345,7 @@ export default function App() {
 
       {/* ════════ MAIN CONTENT ════════ */}
       <main className="flex-1 overflow-y-auto">
-        <div key={viewKey} className="view-enter px-4 md:px-10 pt-5 md:pt-8 pb-32 md:pb-10 max-w-xl mx-auto md:mx-0">
+        <div key={viewKey} className="view-enter px-4 md:px-10 pt-5 md:pt-8 pb-36 md:pb-10 max-w-xl mx-auto md:mx-0">
 
           {/* Mobile header */}
           <div className="flex items-center justify-between mb-4 md:hidden">
@@ -534,7 +534,7 @@ export default function App() {
       {/* ════════ MOBILE BOTTOM NAV ════════ */}
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 bg-[#ECF0EA] border-t border-[#D5E2D4] z-10 flex"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
       >
         <div className="flex overflow-x-auto no-scrollbar flex-1">
           {allNavItems.map(c => {
@@ -546,15 +546,15 @@ export default function App() {
               <button
                 key={c.id}
                 onClick={() => navTo(c.id)}
-                className="flex flex-col items-center justify-center flex-1 min-w-[58px] py-2 px-1 relative transition-colors"
+                className="flex flex-col items-center justify-center flex-1 min-w-[68px] pt-3 pb-1 px-2 relative transition-colors"
                 style={{ color: on ? c.color : '#9BAA9C' }}
               >
-                {on && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-full" style={{ backgroundColor: c.color }} />}
-                <CatIcon cat={c} size={20} strokeWidth={on ? 2 : 1.6} />
-                <span className="text-[10px] font-medium mt-1 leading-none max-w-[52px] truncate">{c.name}</span>
+                {on && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full" style={{ backgroundColor: c.color }} />}
+                <CatIcon cat={c} size={24} strokeWidth={on ? 2 : 1.6} />
+                <span className="text-[11px] font-medium mt-1.5 leading-none max-w-[60px] truncate">{c.name}</span>
                 {count > 0 && (
                   <span
-                    className="absolute top-1 right-1/2 translate-x-4 w-4 h-4 rounded-full text-white flex items-center justify-center font-bold"
+                    className="absolute top-2 right-1/2 translate-x-5 w-4 h-4 rounded-full text-white flex items-center justify-center font-bold"
                     style={{ backgroundColor: c.color, fontSize: 9 }}
                   >
                     {count > 9 ? '9+' : count}
