@@ -139,22 +139,30 @@ export default function App() {
 
   useEffect(() => {
     async function load() {
-      const [{ data: dbCats }, { data: dbTasks }] = await Promise.all([
+      const [catsRes, tasksRes] = await Promise.all([
         supabase.from('categories').select('*').order('sort_order'),
         supabase.from('tasks').select('*').order('sort_order'),
       ])
 
+      if (catsRes.error)  console.error('[supabase] categories:', catsRes.error)
+      if (tasksRes.error) console.error('[supabase] tasks:',      tasksRes.error)
+
+      const dbCats  = catsRes.data
+      const dbTasks = tasksRes.data
+
       let cats, tsk
       if (!dbCats || dbCats.length === 0) {
         cats = readLocalCats() ?? DEFAULT_CATEGORIES
-        await supabase.from('categories').insert(cats.map(catToDb))
+        const { error } = await supabase.from('categories').insert(cats.map(catToDb))
+        if (error) console.error('[supabase] seed categories:', error)
       } else {
         cats = dbCats.map(dbToCat)
       }
 
       if (!dbTasks || dbTasks.length === 0) {
         tsk = readLocalTasks() ?? SEED
-        await supabase.from('tasks').insert(tsk.map(taskToDb))
+        const { error } = await supabase.from('tasks').insert(tsk.map(taskToDb))
+        if (error) console.error('[supabase] seed tasks:', error)
       } else {
         tsk = dbTasks.map(dbToTask)
       }
@@ -186,25 +194,30 @@ export default function App() {
     e.preventDefault()
     if (!text.trim() || isArchive) return
     const newTask = { id: Date.now(), text: text.trim(), category: active, archived: false }
+    const sortPos = -(tasks.filter(t => t.category === active && !t.archived).length + 1)
     setTasks(p => [newTask, ...p])
     setNewTaskId(newTask.id)
     setTimeout(() => setNewTaskId(null), 400)
     setText('')
     inputRef.current?.focus()
-    supabase.from('tasks').insert({ ...taskToDb(newTask, 0), sort_order: -newTask.id })
+    supabase.from('tasks').insert({ ...taskToDb(newTask, 0), sort_order: sortPos })
+      .then(({ error }) => { if (error) console.error('[supabase] add task:', error) })
   }
 
   const archive = id => {
     setTasks(p => p.map(t => t.id === id ? { ...t, archived: true } : t))
     supabase.from('tasks').update({ archived: true }).eq('id', id)
+      .then(({ error }) => { if (error) console.error('[supabase] archive:', error) })
   }
   const restore = id => {
     setTasks(p => p.map(t => t.id === id ? { ...t, archived: false } : t))
     supabase.from('tasks').update({ archived: false }).eq('id', id)
+      .then(({ error }) => { if (error) console.error('[supabase] restore:', error) })
   }
   const remove = id => {
     setTasks(p => p.filter(t => t.id !== id))
     supabase.from('tasks').delete().eq('id', id)
+      .then(({ error }) => { if (error) console.error('[supabase] delete:', error) })
   }
 
   const startEdit  = (id, cur) => { setEditingId(id); setEditText(cur) }
@@ -212,6 +225,7 @@ export default function App() {
     if (editText.trim()) {
       setTasks(p => p.map(t => t.id === id ? { ...t, text: editText.trim() } : t))
       supabase.from('tasks').update({ text: editText.trim() }).eq('id', id)
+        .then(({ error }) => { if (error) console.error('[supabase] edit:', error) })
     }
     setEditingId(null)
   }
