@@ -1044,7 +1044,7 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
       </DndContext>
 
         {/* Add new list */}
-        <div className="bg-white rounded-2xl border border-dashed border-[#C8DAC7] shadow-sm overflow-hidden">
+        <div className="mt-2 bg-white rounded-2xl border border-dashed border-[#C8DAC7] shadow-sm overflow-hidden">
           {showAdd ? (
             <div className="p-4">
               <p className="text-[12px] font-semibold text-[#5A6B5C] mb-3">New List</p>
