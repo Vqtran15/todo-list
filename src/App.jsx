@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { supabase } from './supabase.js'
 import {
   DndContext, closestCenter,
   PointerSensor, TouchSensor, KeyboardSensor,
@@ -94,31 +95,38 @@ const SEED = [
   { id: 4, text: 'Define project milestones',          category: 'projects',  archived: false },
 ]
 
-function loadCategories() {
+// ── Supabase ↔ app shape mappers ───────────────────────────────────────────
+
+const catToDb  = (c, i) => ({ id: c.id, name: c.name, icon_name: c.iconName, color: c.color, light: c.light, dark: c.dark, custom: c.custom ?? false, sort_order: i })
+const dbToCat  = r => ({ id: r.id, name: r.name, iconName: r.icon_name, color: r.color, light: r.light, dark: r.dark, custom: r.custom })
+const taskToDb = (t, i) => ({ id: t.id, text: t.text, category: t.category, archived: t.archived, sort_order: i })
+const dbToTask = r => ({ id: r.id, text: r.text, category: r.category, archived: r.archived })
+
+// Read localStorage for one-time migration on first Supabase load
+function readLocalCats() {
   try {
     const saved = JSON.parse(localStorage.getItem('todo-categories'))
-    if (!saved) return DEFAULT_CATEGORIES
-    // Migrate: patch in iconName for built-in categories saved before this update
+    if (!saved) return null
     return saved.map(cat => {
       const def = DEFAULT_CATEGORIES.find(d => d.id === cat.id)
       return def ? { ...cat, iconName: cat.iconName ?? def.iconName } : cat
     })
-  } catch { return DEFAULT_CATEGORIES }
+  } catch { return null }
 }
-
-function loadTasks() {
+function readLocalTasks() {
   try {
     const raw = JSON.parse(localStorage.getItem('todo-tasks'))
-    if (!raw) return SEED
+    if (!raw) return null
     return raw.map(t => ({ ...t, archived: t.archived ?? t.done ?? false }))
-  } catch { return SEED }
+  } catch { return null }
 }
 
 // ── App ────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [categories, setCategories] = useState(loadCategories)
-  const [tasks, setTasks]           = useState(loadTasks)
+  const [categories, setCategories] = useState([])
+  const [tasks, setTasks]           = useState([])
+  const [loading, setLoading]       = useState(true)
   const [active, setActive]         = useState('general')
   const [prevActive, setPrevActive] = useState('general')
   const [viewKey, setViewKey]       = useState(0)
@@ -126,10 +134,37 @@ export default function App() {
   const [search, setSearch]         = useState('')
   const [editingId, setEditingId]   = useState(null)
   const [editText, setEditText]     = useState('')
+  const [newTaskId, setNewTaskId]   = useState(null)
   const inputRef = useRef()
 
-  useEffect(() => localStorage.setItem('todo-tasks',      JSON.stringify(tasks)),      [tasks])
-  useEffect(() => localStorage.setItem('todo-categories', JSON.stringify(categories)), [categories])
+  useEffect(() => {
+    async function load() {
+      const [{ data: dbCats }, { data: dbTasks }] = await Promise.all([
+        supabase.from('categories').select('*').order('sort_order'),
+        supabase.from('tasks').select('*').order('sort_order'),
+      ])
+
+      let cats, tsk
+      if (!dbCats || dbCats.length === 0) {
+        cats = readLocalCats() ?? DEFAULT_CATEGORIES
+        await supabase.from('categories').insert(cats.map(catToDb))
+      } else {
+        cats = dbCats.map(dbToCat)
+      }
+
+      if (!dbTasks || dbTasks.length === 0) {
+        tsk = readLocalTasks() ?? SEED
+        await supabase.from('tasks').insert(tsk.map(taskToDb))
+      } else {
+        tsk = dbTasks.map(dbToTask)
+      }
+
+      setCategories(cats)
+      setTasks(tsk)
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -147,40 +182,80 @@ export default function App() {
     ? tasks.filter(t => !t.archived && t.text.toLowerCase().includes(search.toLowerCase()))
     : []
 
-  const add     = e => { e.preventDefault(); if (!text.trim() || isArchive) return; setTasks(p => [...p, { id: Date.now(), text: text.trim(), category: active, archived: false }]); setText(''); inputRef.current?.focus() }
-  const archive = id => setTasks(p => p.map(t => t.id === id ? { ...t, archived: true } : t))
-  const restore = id => setTasks(p => p.map(t => t.id === id ? { ...t, archived: false } : t))
-  const remove  = id => setTasks(p => p.filter(t => t.id !== id))
+  const add = e => {
+    e.preventDefault()
+    if (!text.trim() || isArchive) return
+    const newTask = { id: Date.now(), text: text.trim(), category: active, archived: false }
+    setTasks(p => [newTask, ...p])
+    setNewTaskId(newTask.id)
+    setTimeout(() => setNewTaskId(null), 400)
+    setText('')
+    inputRef.current?.focus()
+    supabase.from('tasks').insert({ ...taskToDb(newTask, 0), sort_order: -newTask.id })
+  }
+
+  const archive = id => {
+    setTasks(p => p.map(t => t.id === id ? { ...t, archived: true } : t))
+    supabase.from('tasks').update({ archived: true }).eq('id', id)
+  }
+  const restore = id => {
+    setTasks(p => p.map(t => t.id === id ? { ...t, archived: false } : t))
+    supabase.from('tasks').update({ archived: false }).eq('id', id)
+  }
+  const remove = id => {
+    setTasks(p => p.filter(t => t.id !== id))
+    supabase.from('tasks').delete().eq('id', id)
+  }
+
   const startEdit  = (id, cur) => { setEditingId(id); setEditText(cur) }
-  const saveEdit   = id => { if (editText.trim()) setTasks(p => p.map(t => t.id === id ? { ...t, text: editText.trim() } : t)); setEditingId(null) }
+  const saveEdit   = id => {
+    if (editText.trim()) {
+      setTasks(p => p.map(t => t.id === id ? { ...t, text: editText.trim() } : t))
+      supabase.from('tasks').update({ text: editText.trim() }).eq('id', id)
+    }
+    setEditingId(null)
+  }
   const cancelEdit = () => setEditingId(null)
 
   const handleDragEnd = ({ active: a, over }) => {
     if (!over || a.id === over.id) return
-    setTasks(prev => {
-      const si = prev.findIndex(t => t.id === a.id)
-      const oi = prev.findIndex(t => t.id === over.id)
-      if (si === -1 || oi === -1) return prev
-      const next = [...prev]
-      const [moved] = next.splice(si, 1)
-      next.splice(oi, 0, moved)
-      return next
-    })
+    const si = tasks.findIndex(t => t.id === a.id)
+    const oi = tasks.findIndex(t => t.id === over.id)
+    if (si === -1 || oi === -1) return
+    const next = [...tasks]
+    const [moved] = next.splice(si, 1)
+    next.splice(oi, 0, moved)
+    setTasks(next)
+    next
+      .filter(t => t.category === active && !t.archived)
+      .forEach((t, i) => supabase.from('tasks').update({ sort_order: i }).eq('id', t.id))
   }
 
-  // shared helper — creates the category object, returns id
   const createCat = ({ name, iconName, color, light, dark }) => {
     const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now()
-    setCategories(p => [...p, { id, name, iconName, color, light, dark, custom: true }])
+    const newCat = { id, name, iconName, color, light, dark, custom: true }
+    setCategories(p => [...p, newCat])
+    supabase.from('categories').insert(catToDb(newCat, categories.length))
     return id
   }
 
-  const updateCategory = (id, updates) =>
+  const updateCategory = (id, updates) => {
     setCategories(p => p.map(c => c.id === id ? { ...c, ...updates } : c))
+    const dbUp = {}
+    if (updates.name     !== undefined) dbUp.name      = updates.name
+    if (updates.iconName !== undefined) dbUp.icon_name = updates.iconName
+    if (updates.color    !== undefined) dbUp.color     = updates.color
+    if (updates.light    !== undefined) dbUp.light     = updates.light
+    if (updates.dark     !== undefined) dbUp.dark      = updates.dark
+    supabase.from('categories').update(dbUp).eq('id', id)
+  }
+
   const deleteCategory = id => {
     setCategories(p => p.filter(c => c.id !== id))
     setTasks(p => p.filter(t => t.category !== id))
     if (active === id) setActive('general')
+    supabase.from('categories').delete().eq('id', id)
+    supabase.from('tasks').delete().eq('category', id)
   }
   const navTo = id => {
     if (id === 'settings' && active === 'settings') {
@@ -195,6 +270,17 @@ export default function App() {
   }
 
   const allNavItems = [...categories]
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F8F6F2]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-[#EEF3EC] flex items-center justify-center animate-pulse">
+          <ClipboardList size={20} style={{ color: '#7C9A7E' }} strokeWidth={1.75} />
+        </div>
+        <p className="text-[13px] text-[#9BAA9C]">Loading…</p>
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen flex bg-[#F8F6F2]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -271,8 +357,14 @@ export default function App() {
               onUpdate={updateCategory}
               onDelete={deleteCategory}
               onAdd={createCat}
-              onClearArchive={() => setTasks(p => p.filter(t => !t.archived))}
-              onClearCatArchive={catId => setTasks(p => p.filter(t => !(t.archived && t.category === catId)))}
+              onClearArchive={() => {
+                setTasks(p => p.filter(t => !t.archived))
+                supabase.from('tasks').delete().eq('archived', true)
+              }}
+              onClearCatArchive={catId => {
+                setTasks(p => p.filter(t => !(t.archived && t.category === catId)))
+                supabase.from('tasks').delete().eq('archived', true).eq('category', catId)
+              }}
             />
           )}
 
@@ -333,7 +425,7 @@ export default function App() {
                   <p className="text-xs text-[#9BAA9C] mt-0.5">{archiveCount} completed</p>
                 </div>
                 {archiveCount > 0 && (
-                  <button onClick={() => setTasks(p => p.filter(t => !t.archived))} className="ml-auto text-xs text-[#CABFB5] hover:text-rose-400 py-2 px-1 transition-colors">
+                  <button onClick={() => { setTasks(p => p.filter(t => !t.archived)); supabase.from('tasks').delete().eq('archived', true) }} className="ml-auto text-xs text-[#CABFB5] hover:text-rose-400 py-2 px-1 transition-colors">
                     Clear all
                   </button>
                 )}
@@ -409,6 +501,7 @@ export default function App() {
                       {activeTasks.map(t => (
                         <SortableTaskRow
                           key={t.id} task={t} cat={cat}
+                          isNew={t.id === newTaskId}
                           isEditing={editingId === t.id} editText={editText}
                           onEditChange={setEditText} onStartEdit={startEdit}
                           onSaveEdit={saveEdit} onCancelEdit={cancelEdit}
@@ -468,7 +561,11 @@ function SortableTaskRow(props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: props.task.id })
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 'auto' }}>
+    <div
+      ref={setNodeRef}
+      className={props.isNew ? 'task-entering' : ''}
+      style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 'auto' }}
+    >
       <TaskRow {...props} isDragging={isDragging} dragListeners={listeners} dragAttributes={attributes} />
     </div>
   )
