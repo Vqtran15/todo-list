@@ -151,20 +151,20 @@ export default function App() {
       const dbTasks = tasksRes.data
 
       let cats, tsk
-      if (!dbCats || dbCats.length === 0) {
+      const firstRun = !dbCats || dbCats.length === 0
+
+      if (firstRun) {
         cats = readLocalCats() ?? DEFAULT_CATEGORIES
         const { error } = await supabase.from('categories').insert(cats.map(catToDb))
         if (error) console.error('[supabase] seed categories:', error)
+        // Only seed tasks on true first run — if categories already exist,
+        // an empty tasks table means the user deleted everything intentionally
+        tsk = readLocalTasks() ?? SEED
+        const { error: te } = await supabase.from('tasks').insert(tsk.map(taskToDb))
+        if (te) console.error('[supabase] seed tasks:', te)
       } else {
         cats = dbCats.map(dbToCat)
-      }
-
-      if (!dbTasks || dbTasks.length === 0) {
-        tsk = readLocalTasks() ?? SEED
-        const { error } = await supabase.from('tasks').insert(tsk.map(taskToDb))
-        if (error) console.error('[supabase] seed tasks:', error)
-      } else {
-        tsk = dbTasks.map(dbToTask)
+        tsk  = dbTasks ? dbTasks.map(dbToTask) : []
       }
 
       setCategories(cats)
