@@ -18,6 +18,22 @@ body { margin: 0; }
   animation: view-in 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
+@keyframes slide-in-from-right {
+  from { opacity: 0; transform: translateX(48px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.slide-from-right {
+  animation: slide-in-from-right 0.26s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@keyframes slide-in-from-left {
+  from { opacity: 0; transform: translateX(-48px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.slide-from-left {
+  animation: slide-in-from-left 0.26s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
 /* Task completion */
 @keyframes task-complete {
   0%   { opacity: 1; transform: scale(1);    background-color: white;   border-color: #E0EAE0; max-height: 80px; margin-bottom: 8px; }

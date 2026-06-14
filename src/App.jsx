@@ -130,6 +130,7 @@ export default function App() {
   const [active, setActive]         = useState('general')
   const [prevActive, setPrevActive] = useState('general')
   const [viewKey, setViewKey]       = useState(0)
+  const [navDir, setNavDir]         = useState('none')
   const [text, setText]             = useState('')
   const [search, setSearch]         = useState('')
   const [editingId, setEditingId]   = useState(null)
@@ -284,8 +285,16 @@ export default function App() {
     )
   }
   const navTo = id => {
+    const catIds = categories.map(c => c.id)
+    const curIdx = catIds.indexOf(active)
+    const newIdx = catIds.indexOf(id)
+    if (curIdx !== -1 && newIdx !== -1) {
+      setNavDir(newIdx > curIdx ? 'right' : 'left')
+    } else {
+      setNavDir('none')
+    }
+
     if (id === 'settings' && active === 'settings') {
-      // toggle: return to previous category
       setActive(prevActive)
     } else {
       if (active !== 'settings') setPrevActive(active)
@@ -357,7 +366,7 @@ export default function App() {
 
       {/* ════════ MAIN CONTENT ════════ */}
       <main className="flex-1 overflow-y-auto">
-        <div key={viewKey} className="view-enter px-4 md:px-10 pt-5 md:pt-8 pb-36 md:pb-10 max-w-xl mx-auto md:mx-0">
+        <div key={viewKey} className={`${navDir === 'right' ? 'slide-from-right' : navDir === 'left' ? 'slide-from-left' : 'view-enter'} px-4 md:px-10 pt-5 md:pt-8 pb-36 md:pb-10 max-w-xl mx-auto md:mx-0`}>
 
           {/* Mobile header */}
           <div className="flex items-center justify-between mb-4 md:hidden">
