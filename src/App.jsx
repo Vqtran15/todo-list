@@ -182,7 +182,7 @@ export default function App() {
   }
   const navTo = id => { setActive(id); setSearch('') }
 
-  const allNavItems = [...categories, ARCHIVE_CAT]
+  const allNavItems = [...categories]
 
   return (
     <div className="min-h-screen flex bg-[#F8F6F2]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -213,19 +213,6 @@ export default function App() {
             )
           })}
 
-          <div className="mx-3 pt-2 mt-1 border-t border-[#D5E2D4]" />
-
-          <button
-            onClick={() => navTo('archive')}
-            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
-            style={isArchive ? { backgroundColor: '#9BAA9C22', color: '#4A5A4C' } : { color: '#637265' }}
-          >
-            <Archive size={16} style={{ color: '#9BAA9C', flexShrink: 0 }} />
-            <span className={`flex-1 text-[13px] ${isArchive ? 'font-semibold' : 'font-medium'}`}>Archive</span>
-            {archiveCount > 0 && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white bg-[#B5C4B6]">{archiveCount}</span>
-            )}
-          </button>
         </nav>
 
         <div className="mx-4 py-3 border-t border-[#D5E2D4] flex items-center justify-between">
