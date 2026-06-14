@@ -124,11 +124,6 @@ export default function App() {
   const [search, setSearch]         = useState('')
   const [editingId, setEditingId]   = useState(null)
   const [editText, setEditText]     = useState('')
-  const [showNewCat, setShowNewCat] = useState(false)
-  const [newCatName, setNewCatName] = useState('')
-  const [newCatColor, setNewCatColor] = useState(PALETTE[0])
-  const [newCatIcon, setNewCatIcon]   = useState(CUSTOM_ICONS[0])
-
   const inputRef = useRef()
 
   useEffect(() => localStorage.setItem('todo-tasks',      JSON.stringify(tasks)),      [tasks])
@@ -178,13 +173,6 @@ export default function App() {
     return id
   }
 
-  const addCategory = e => {
-    e.preventDefault()
-    if (!newCatName.trim()) return
-    const id = createCat({ name: newCatName.trim(), iconName: newCatIcon, ...newCatColor })
-    setNewCatName(''); setNewCatColor(PALETTE[0]); setNewCatIcon(CUSTOM_ICONS[0]); setShowNewCat(false)
-    navTo(id)
-  }
   const updateCategory = (id, updates) =>
     setCategories(p => p.map(c => c.id === id ? { ...c, ...updates } : c))
   const deleteCategory = id => {
@@ -195,7 +183,6 @@ export default function App() {
   const navTo = id => { setActive(id); setSearch('') }
 
   const allNavItems = [...categories, ARCHIVE_CAT]
-  const closeNewCat = () => { setShowNewCat(false); setNewCatName('') }
 
   return (
     <div className="min-h-screen flex bg-[#F8F6F2]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -225,23 +212,6 @@ export default function App() {
               </button>
             )
           })}
-
-          {showNewCat ? (
-            <NewCatForm
-              name={newCatName} setName={setNewCatName}
-              color={newCatColor} setColor={setNewCatColor}
-              icon={newCatIcon}  setIcon={setNewCatIcon}
-              onSubmit={addCategory} onClose={closeNewCat}
-            />
-          ) : (
-            <button
-              onClick={() => setShowNewCat(true)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-[#9BAA9C] hover:text-[#7C9A7E] transition-colors mt-1"
-            >
-              <Plus size={14} />
-              <span className="text-[12px] font-medium">New List</span>
-            </button>
-          )}
 
           <div className="mx-3 pt-2 mt-1 border-t border-[#D5E2D4]" />
 
@@ -302,6 +272,8 @@ export default function App() {
               onUpdate={updateCategory}
               onDelete={deleteCategory}
               onAdd={createCat}
+              onClearArchive={() => setTasks(p => p.filter(t => !t.archived))}
+              onClearCatArchive={catId => setTasks(p => p.filter(t => !(t.archived && t.category === catId)))}
             />
           )}
 
@@ -486,36 +458,7 @@ export default function App() {
             )
           })}
         </div>
-        <button
-          onClick={() => setShowNewCat(true)}
-          className="flex flex-col items-center justify-center w-14 py-2 shrink-0 border-l border-[#D5E2D4] text-[#9BAA9C] hover:text-[#7C9A7E] active:bg-[#E4EAE3] transition-colors"
-        >
-          <Plus size={20} />
-          <span className="text-[10px] font-medium mt-1">New</span>
-        </button>
       </nav>
-
-      {/* ════════ MOBILE NEW CATEGORY BOTTOM SHEET ════════ */}
-      {showNewCat && (
-        <div className="md:hidden fixed inset-0 z-20" onClick={closeNewCat}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div
-            className="absolute inset-x-0 bg-white rounded-t-2xl px-5 pt-3 pb-8 shadow-xl"
-            style={{ bottom: 'calc(64px + env(safe-area-inset-bottom))' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="w-8 h-1 bg-[#D5E2D4] rounded-full mx-auto mb-4" />
-            <p className="text-[15px] font-semibold text-[#3D4A3E] mb-4">New List</p>
-            <NewCatForm
-              name={newCatName} setName={setNewCatName}
-              color={newCatColor} setColor={setNewCatColor}
-              icon={newCatIcon}  setIcon={setNewCatIcon}
-              onSubmit={addCategory} onClose={closeNewCat}
-              mobile
-            />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -734,7 +677,7 @@ function NewCatForm({ name, setName, color, setColor, icon, setIcon, onSubmit, o
 
 // ── Settings Page ──────────────────────────────────────────────────────────
 
-function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd }) {
+function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onClearArchive, onClearCatArchive }) {
   const [editingId, setEditingId]   = useState(null)
   const [editName, setEditName]     = useState('')
   const [editColor, setEditColor]   = useState(PALETTE[0])
@@ -938,6 +881,93 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd }) {
             </button>
           )}
         </div>
+      </div>
+
+      {/* ── Archive section ── */}
+      <ArchiveSettings tasks={tasks} categories={categories} onClearAll={onClearArchive} onClearCat={onClearCatArchive} />
+    </div>
+  )
+}
+
+// ── Archive Settings section ───────────────────────────────────────────────
+
+function ArchiveSettings({ tasks, categories, onClearAll, onClearCat }) {
+  const [confirmClear, setConfirmClear] = useState(false)
+  const totalArchived = tasks.filter(t => t.archived).length
+  const catsWithArchive = categories
+    .map(c => ({ ...c, count: tasks.filter(t => t.archived && t.category === c.id).length }))
+    .filter(c => c.count > 0)
+
+  return (
+    <div className="mt-8">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#9BAA9C] mb-3">Archive</p>
+
+      <div className="bg-white rounded-2xl border border-[#E0EAE0] shadow-sm overflow-hidden">
+        {/* Summary row */}
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#F0F4EF]">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-[#F0F2EE]">
+            <Archive size={18} style={{ color: '#9BAA9C' }} strokeWidth={1.75} />
+          </div>
+          <div className="flex-1">
+            <p className="text-[14px] font-medium text-[#3D4A3E]">Completed Tasks</p>
+            <p className="text-[11px] text-[#9BAA9C]">{totalArchived} task{totalArchived !== 1 ? 's' : ''} archived</p>
+          </div>
+          {totalArchived > 0 && !confirmClear && (
+            <button
+              onClick={() => setConfirmClear(true)}
+              className="h-8 px-3 rounded-lg text-[12px] font-medium text-rose-400 hover:bg-rose-50 transition-all"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+
+        {/* Confirm clear all */}
+        {confirmClear && (
+          <div className="px-4 py-3.5 bg-rose-50 border-b border-rose-100">
+            <p className="text-[13px] font-semibold text-rose-700 mb-0.5">Clear entire archive?</p>
+            <p className="text-[12px] text-rose-500 mb-3">{totalArchived} completed task{totalArchived !== 1 ? 's' : ''} will be permanently deleted.</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { onClearAll(); setConfirmClear(false) }}
+                className="flex-1 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-[13px] font-semibold transition-colors"
+              >
+                Clear all
+              </button>
+              <button
+                onClick={() => setConfirmClear(false)}
+                className="flex-1 py-2 rounded-xl bg-white border border-[#E0EAE0] text-[#9BAA9C] text-[13px] font-medium hover:bg-[#F8F6F2] transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Per-category breakdown */}
+        {totalArchived === 0 && (
+          <div className="px-4 py-5 text-center">
+            <p className="text-[13px] text-[#B5C4B6]">Nothing archived yet.</p>
+          </div>
+        )}
+        {catsWithArchive.map((c, i) => (
+          <div
+            key={c.id}
+            className={`flex items-center gap-3 px-4 py-3 ${i < catsWithArchive.length - 1 ? 'border-b border-[#F4F6F3]' : ''}`}
+          >
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: c.light }}>
+              <CatIcon cat={c} size={14} style={{ color: c.color }} strokeWidth={1.75} />
+            </div>
+            <span className="flex-1 text-[13px] text-[#5A6B5C]">{c.name}</span>
+            <span className="text-[12px] text-[#9BAA9C] mr-2">{c.count} completed</span>
+            <button
+              onClick={() => onClearCat(c.id)}
+              className="text-[11px] text-[#C8BEB4] hover:text-rose-400 transition-colors px-1 py-0.5"
+            >
+              Clear
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   )
