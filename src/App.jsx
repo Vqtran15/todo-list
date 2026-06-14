@@ -586,6 +586,42 @@ export default function App() {
   )
 }
 
+// ── Confirm modal ─────────────────────────────────────────────────────────
+
+function ConfirmModal({ message, onConfirm, onCancel }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)' }}
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden view-enter"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-5 pt-5 pb-4">
+          <p className="text-[15px] font-semibold text-[#3D4A3E] mb-1">Delete task?</p>
+          <p className="text-[13px] text-[#9BAA9C] leading-snug">"{message}"</p>
+        </div>
+        <div className="flex border-t border-[#F0F0EE]">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-3.5 text-[14px] font-medium text-[#9BAA9C] hover:bg-[#F8F6F2] transition-colors border-r border-[#F0F0EE]"
+          >
+            Keep
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-3.5 text-[14px] font-semibold text-rose-500 hover:bg-rose-50 transition-colors"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Sortable wrapper ───────────────────────────────────────────────────────
 
 function SortableTaskRow(props) {
@@ -605,8 +641,9 @@ function SortableTaskRow(props) {
 // ── Task Row ───────────────────────────────────────────────────────────────
 
 function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, isDragging, dragListeners, dragAttributes }) {
-  const [completing, setCompleting] = useState(false)
-  const [deleting, setDeleting]     = useState(false)
+  const [completing, setCompleting]   = useState(false)
+  const [deleting, setDeleting]       = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const handleComplete = () => {
     setCompleting(true)
@@ -672,12 +709,20 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
             <Pencil size={14} />
           </button>
           <button
-            onClick={handleDelete}
+            onClick={() => setConfirmDelete(true)}
             className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all"
           >
             <X size={16} />
           </button>
         </div>
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          message={task.text}
+          onConfirm={() => { setConfirmDelete(false); handleDelete() }}
+          onCancel={() => setConfirmDelete(false)}
+        />
       )}
     </div>
   )
