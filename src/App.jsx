@@ -534,7 +534,7 @@ export default function App() {
       {/* ════════ MOBILE BOTTOM NAV ════════ */}
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 bg-[#ECF0EA] border-t border-[#D5E2D4] z-10 flex"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
       >
         <div className="flex overflow-x-auto no-scrollbar flex-1">
           {allNavItems.map(c => {
