@@ -120,6 +120,8 @@ export default function App() {
   const [categories, setCategories] = useState(loadCategories)
   const [tasks, setTasks]           = useState(loadTasks)
   const [active, setActive]         = useState('general')
+  const [prevActive, setPrevActive] = useState('general')
+  const [viewKey, setViewKey]       = useState(0)
   const [text, setText]             = useState('')
   const [search, setSearch]         = useState('')
   const [editingId, setEditingId]   = useState(null)
@@ -180,7 +182,17 @@ export default function App() {
     setTasks(p => p.filter(t => t.category !== id))
     if (active === id) setActive('general')
   }
-  const navTo = id => { setActive(id); setSearch('') }
+  const navTo = id => {
+    if (id === 'settings' && active === 'settings') {
+      // toggle: return to previous category
+      setActive(prevActive)
+    } else {
+      if (active !== 'settings') setPrevActive(active)
+      setActive(id)
+    }
+    setSearch('')
+    setViewKey(k => k + 1)
+  }
 
   const allNavItems = [...categories]
 
@@ -233,7 +245,7 @@ export default function App() {
 
       {/* ════════ MAIN CONTENT ════════ */}
       <main className="flex-1 overflow-y-auto">
-        <div className="px-4 md:px-10 pt-5 md:pt-8 pb-32 md:pb-10 max-w-xl mx-auto md:mx-0">
+        <div key={viewKey} className="view-enter px-4 md:px-10 pt-5 md:pt-8 pb-32 md:pb-10 max-w-xl mx-auto md:mx-0">
 
           {/* Mobile header */}
           <div className="flex items-center justify-between mb-4 md:hidden">
@@ -465,11 +477,26 @@ function SortableTaskRow(props) {
 // ── Task Row ───────────────────────────────────────────────────────────────
 
 function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, isDragging, dragListeners, dragAttributes }) {
+  const [completing, setCompleting] = useState(false)
+  const [deleting, setDeleting]     = useState(false)
+
+  const handleComplete = () => {
+    setCompleting(true)
+    setTimeout(() => onArchive(task.id), 320)
+  }
+
+  const handleDelete = () => {
+    setDeleting(true)
+    setTimeout(() => onDelete(task.id), 260)
+  }
+
   return (
     <div
       className={`group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border shadow-sm transition-all ${
-        isDragging ? 'border-[#7C9A7E] shadow-lg opacity-50 rotate-1 scale-[1.02]'
-                   : 'border-[#E0EAE0] md:hover:border-[#C8DCC8] md:hover:shadow'
+        completing ? 'task-completing'
+        : deleting  ? 'task-deleting'
+        : isDragging ? 'border-[#7C9A7E] shadow-lg opacity-50 rotate-1 scale-[1.02]'
+                     : 'border-[#E0EAE0] md:hover:border-[#C8DCC8] md:hover:shadow'
       }`}
     >
       <span
@@ -480,14 +507,17 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
       </span>
 
       <button
-        onClick={() => onArchive(task.id)}
+        onClick={handleComplete}
         className="shrink-0 -m-1 p-1 rounded-full transition-all active:scale-90 group/check"
       >
         <div
-          className="w-[20px] h-[20px] rounded-full border-2 transition-all group-hover/check:scale-110"
-          style={{ borderColor: '#C0D0BF' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = cat.color; e.currentTarget.style.backgroundColor = cat.color + '22' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = '#C0D0BF'; e.currentTarget.style.backgroundColor = 'transparent' }}
+          className={`w-[20px] h-[20px] rounded-full border-2 transition-all group-hover/check:scale-110 ${completing ? 'scale-125' : ''}`}
+          style={{
+            borderColor: completing ? cat.color : '#C0D0BF',
+            backgroundColor: completing ? cat.color + '33' : 'transparent',
+          }}
+          onMouseEnter={e => { if (!completing) { e.currentTarget.style.borderColor = cat.color; e.currentTarget.style.backgroundColor = cat.color + '22' } }}
+          onMouseLeave={e => { if (!completing) { e.currentTarget.style.borderColor = '#C0D0BF'; e.currentTarget.style.backgroundColor = 'transparent' } }}
         />
       </button>
 
@@ -514,7 +544,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
             <Pencil size={14} />
           </button>
           <button
-            onClick={() => onDelete(task.id)}
+            onClick={handleDelete}
             className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all"
           >
             <X size={16} />
