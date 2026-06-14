@@ -18,7 +18,7 @@ import {
   Coffee, Camera, Plane, Heart, ShoppingBag, Leaf, Utensils, Laptop,
   Sparkles, Bike, Baby, Pill, PawPrint, Sunrise, Wallet, Globe,
   // UI icons
-  Plus, Search, Pencil, X, GripVertical, Settings,
+  Plus, Search, Pencil, X, GripVertical, Settings, ChevronDown,
 } from 'lucide-react'
 
 // ── Icon registry ──────────────────────────────────────────────────────────
@@ -271,6 +271,14 @@ export default function App() {
     supabase.from('categories').delete().eq('id', id)
     supabase.from('tasks').delete().eq('category', id)
   }
+
+  const reorderCategories = newOrder => {
+    setCategories(newOrder)
+    newOrder.forEach((c, i) =>
+      supabase.from('categories').update({ sort_order: i }).eq('id', c.id)
+        .then(({ error }) => { if (error) console.error('[supabase] reorder cat:', error) })
+    )
+  }
   const navTo = id => {
     if (id === 'settings' && active === 'settings') {
       // toggle: return to previous category
@@ -338,7 +346,7 @@ export default function App() {
             }`}
             title="Settings"
           >
-            <Settings size={14} />
+            <Settings size={18} />
           </button>
         </div>
       </aside>
@@ -358,7 +366,7 @@ export default function App() {
                   isSettings ? 'bg-[#7C9A7E22] text-[#4A6B4C]' : 'text-[#9BAA9C] hover:text-[#637265]'
                 }`}
               >
-                <Settings size={16} />
+                <Settings size={20} />
               </button>
             </div>
           </div>
@@ -371,6 +379,9 @@ export default function App() {
               onUpdate={updateCategory}
               onDelete={deleteCategory}
               onAdd={createCat}
+              onReorder={reorderCategories}
+              onRestoreTask={restore}
+              onDeleteTask={remove}
               onClearArchive={() => {
                 setTasks(p => p.filter(t => !t.archived))
                 supabase.from('tasks').delete().eq('archived', true)
@@ -803,9 +814,25 @@ function NewCatForm({ name, setName, color, setColor, icon, setIcon, onSubmit, o
   )
 }
 
+// ── Sortable category card wrapper ─────────────────────────────────────────
+
+function SortableCatCard({ id, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 'auto' }}
+      className={`bg-white rounded-2xl border border-[#E0EAE0] shadow-sm overflow-hidden ${isDragging ? 'opacity-50 shadow-lg' : ''}`}
+    >
+      {children(listeners, attributes)}
+    </div>
+  )
+}
+
 // ── Settings Page ──────────────────────────────────────────────────────────
 
-function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onClearArchive, onClearCatArchive }) {
+function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, onClearArchive, onClearCatArchive }) {
   const [editingId, setEditingId]   = useState(null)
   const [editName, setEditName]     = useState('')
   const [editColor, setEditColor]   = useState(PALETTE[0])
@@ -815,6 +842,22 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onClearArc
   const [addName, setAddName]       = useState('')
   const [addColor, setAddColor]     = useState(PALETTE[0])
   const [addIcon, setAddIcon]       = useState(CUSTOM_ICONS[0])
+
+  const catSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 200, tolerance: 8 } }),
+  )
+
+  const handleCatDragEnd = ({ active, over }) => {
+    if (!over || active.id === over.id) return
+    const oldIdx = categories.findIndex(c => c.id === active.id)
+    const newIdx = categories.findIndex(c => c.id === over.id)
+    if (oldIdx === -1 || newIdx === -1) return
+    const next = [...categories]
+    const [moved] = next.splice(oldIdx, 1)
+    next.splice(newIdx, 0, moved)
+    onReorder(next)
+  }
 
   const startEdit = cat => {
     setEditingId(cat.id)
@@ -850,6 +893,8 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onClearArc
 
       {/* Lists section */}
       <p className="text-[10px] font-semibold uppercase tracking-widest text-[#9BAA9C] mb-3">Lists</p>
+      <DndContext sensors={catSensors} collisionDetection={closestCenter} onDragEnd={handleCatDragEnd}>
+        <SortableContext items={categories.map(c => c.id)} strategy={verticalListSortingStrategy}>
       <div className="space-y-2">
         {categories.map(cat => {
           const activeCount   = tasks.filter(t => t.category === cat.id && !t.archived).length
@@ -861,11 +906,19 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onClearArc
             : cat
 
           return (
-            <div key={cat.id} className="bg-white rounded-2xl border border-[#E0EAE0] shadow-sm overflow-hidden">
+            <SortableCatCard key={cat.id} id={cat.id}>
+              {(dragListeners, dragAttributes) => (<>
 
               {/* Row */}
               {!isDeleting && (
                 <div className="flex items-center gap-3 px-4 py-3.5">
+                  <span
+                    {...(isEditing ? {} : dragListeners)}
+                    {...(isEditing ? {} : dragAttributes)}
+                    className={`shrink-0 flex items-center text-[#D0DDD0] touch-none select-none transition-colors p-1 -ml-1 ${isEditing ? 'opacity-0 pointer-events-none' : 'cursor-grab active:cursor-grabbing hover:text-[#A8BAA8]'}`}
+                  >
+                    <GripVertical size={16} />
+                  </span>
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors" style={{ backgroundColor: previewCat.light ?? cat.light }}>
                     <CatIcon cat={previewCat} size={18} style={{ color: previewCat.color }} strokeWidth={1.75} />
                   </div>
@@ -982,9 +1035,13 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onClearArc
                   </div>
                 </div>
               )}
-            </div>
+              </>)}
+            </SortableCatCard>
           )
         })}
+      </div>
+        </SortableContext>
+      </DndContext>
 
         {/* Add new list */}
         <div className="bg-white rounded-2xl border border-dashed border-[#C8DAC7] shadow-sm overflow-hidden">
@@ -1009,22 +1066,28 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onClearArc
             </button>
           )}
         </div>
-      </div>
 
       {/* ── Archive section ── */}
-      <ArchiveSettings tasks={tasks} categories={categories} onClearAll={onClearArchive} onClearCat={onClearCatArchive} />
+      <ArchiveSettings tasks={tasks} categories={categories} onRestore={onRestoreTask} onDelete={onDeleteTask} onClearAll={onClearArchive} onClearCat={onClearCatArchive} />
     </div>
   )
 }
 
 // ── Archive Settings section ───────────────────────────────────────────────
 
-function ArchiveSettings({ tasks, categories, onClearAll, onClearCat }) {
+function ArchiveSettings({ tasks, categories, onRestore, onDelete, onClearAll, onClearCat }) {
   const [confirmClear, setConfirmClear] = useState(false)
+  const [expanded, setExpanded]         = useState(new Set())
   const totalArchived = tasks.filter(t => t.archived).length
   const catsWithArchive = categories
-    .map(c => ({ ...c, count: tasks.filter(t => t.archived && t.category === c.id).length }))
-    .filter(c => c.count > 0)
+    .map(c => ({ ...c, archivedTasks: tasks.filter(t => t.archived && t.category === c.id) }))
+    .filter(c => c.archivedTasks.length > 0)
+
+  const toggle = id => setExpanded(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
 
   return (
     <div className="mt-8">
@@ -1072,30 +1135,76 @@ function ArchiveSettings({ tasks, categories, onClearAll, onClearCat }) {
           </div>
         )}
 
-        {/* Per-category breakdown */}
         {totalArchived === 0 && (
           <div className="px-4 py-5 text-center">
             <p className="text-[13px] text-[#B5C4B6]">Nothing archived yet.</p>
           </div>
         )}
-        {catsWithArchive.map((c, i) => (
-          <div
-            key={c.id}
-            className={`flex items-center gap-3 px-4 py-3 ${i < catsWithArchive.length - 1 ? 'border-b border-[#F4F6F3]' : ''}`}
-          >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: c.light }}>
-              <CatIcon cat={c} size={14} style={{ color: c.color }} strokeWidth={1.75} />
+
+        {/* Per-category breakdown — expandable */}
+        {catsWithArchive.map((c, i) => {
+          const isExpanded = expanded.has(c.id)
+          const isLast = i === catsWithArchive.length - 1
+          return (
+            <div key={c.id} className={!isLast || isExpanded ? 'border-b border-[#F4F6F3]' : ''}>
+              {/* Category header row */}
+              <button
+                onClick={() => toggle(c.id)}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#FAFAF9] transition-colors text-left"
+              >
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: c.light }}>
+                  <CatIcon cat={c} size={14} style={{ color: c.color }} strokeWidth={1.75} />
+                </div>
+                <span className="flex-1 text-[13px] text-[#5A6B5C]">{c.name}</span>
+                <span className="text-[12px] text-[#9BAA9C]">{c.archivedTasks.length} completed</span>
+                <ChevronDown
+                  size={15}
+                  className="ml-1 text-[#C0CCC0] transition-transform duration-200 shrink-0"
+                  style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                />
+              </button>
+
+              {/* Expanded task list */}
+              {isExpanded && (
+                <div className="border-t border-[#F4F6F3] bg-[#FAFBF9]">
+                  {c.archivedTasks.map((t, ti) => (
+                    <div
+                      key={t.id}
+                      className={`flex items-center gap-2.5 px-4 py-2.5 ${ti < c.archivedTasks.length - 1 ? 'border-b border-[#F4F6F3]' : ''}`}
+                    >
+                      <div className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: c.color }}>
+                        <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <span className="flex-1 text-[12px] line-through text-[#9BAA9C] leading-snug">{t.text}</span>
+                      <button
+                        onClick={() => onRestore(t.id)}
+                        className="text-[11px] text-[#9BAA9C] hover:text-[#5A7A5C] px-2 py-1 rounded-lg hover:bg-[#EEF3EC] transition-all shrink-0"
+                      >
+                        Restore
+                      </button>
+                      <button
+                        onClick={() => onDelete(t.id)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 hover:bg-rose-50 transition-all shrink-0"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="px-4 py-2.5 flex justify-end border-t border-[#F0F0EE]">
+                    <button
+                      onClick={() => { onClearCat(c.id); setExpanded(prev => { const n = new Set(prev); n.delete(c.id); return n }) }}
+                      className="text-[11px] text-[#C8BEB4] hover:text-rose-400 transition-colors"
+                    >
+                      Clear all in {c.name}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-            <span className="flex-1 text-[13px] text-[#5A6B5C]">{c.name}</span>
-            <span className="text-[12px] text-[#9BAA9C] mr-2">{c.count} completed</span>
-            <button
-              onClick={() => onClearCat(c.id)}
-              className="text-[11px] text-[#C8BEB4] hover:text-rose-400 transition-colors px-1 py-0.5"
-            >
-              Clear
-            </button>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
