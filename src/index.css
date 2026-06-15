@@ -75,3 +75,17 @@ body { margin: 0; }
   overflow: hidden;
   pointer-events: none;
 }
+
+/* Category card enter/exit in Settings */
+@keyframes cat-enter {
+  from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)     scale(1); }
+}
+.cat-entering { animation: cat-enter 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
+@keyframes cat-exit {
+  0%   { opacity: 1; transform: translateX(0);    max-height: 200px; margin-bottom: 8px; }
+  30%  { opacity: 1; transform: translateX(-6px); }
+  100% { opacity: 0; transform: translateX(20px); max-height: 0;     margin-bottom: 0; }
+}
+.cat-exiting { animation: cat-exit 0.25s cubic-bezier(0.4, 0, 0.6, 1) both; overflow: hidden; pointer-events: none; }

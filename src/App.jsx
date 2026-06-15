@@ -904,14 +904,14 @@ function NewCatForm({ name, setName, color, setColor, icon, setIcon, onSubmit, o
 
 // ── Sortable category card wrapper ─────────────────────────────────────────
 
-function SortableCatCard({ id, children }) {
+function SortableCatCard({ id, className = '', children }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id })
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 'auto' }}
-      className={`bg-white rounded-2xl border border-[#E0EAE0] shadow-sm overflow-hidden ${isDragging ? 'opacity-50 shadow-lg' : ''}`}
+      className={`bg-white rounded-2xl border border-[#E0EAE0] shadow-sm overflow-hidden ${isDragging ? 'opacity-50 shadow-lg' : ''} ${className}`}
     >
       {children(listeners, attributes)}
     </div>
@@ -921,15 +921,17 @@ function SortableCatCard({ id, children }) {
 // ── Settings Page ──────────────────────────────────────────────────────────
 
 function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, onClearArchive, onClearCatArchive, user, onSignOut }) {
-  const [editingId, setEditingId]   = useState(null)
-  const [editName, setEditName]     = useState('')
-  const [editColor, setEditColor]   = useState(PALETTE[0])
-  const [editIcon, setEditIcon]     = useState(CUSTOM_ICONS[0])
-  const [deletingId, setDeletingId] = useState(null)
-  const [showAdd, setShowAdd]       = useState(false)
-  const [addName, setAddName]       = useState('')
-  const [addColor, setAddColor]     = useState(PALETTE[0])
-  const [addIcon, setAddIcon]       = useState(CUSTOM_ICONS[0])
+  const [editingId, setEditingId]     = useState(null)
+  const [editName, setEditName]       = useState('')
+  const [editColor, setEditColor]     = useState(PALETTE[0])
+  const [editIcon, setEditIcon]       = useState(CUSTOM_ICONS[0])
+  const [deletingId, setDeletingId]   = useState(null)
+  const [exitingCatId, setExitingCatId] = useState(null)
+  const [newCatId, setNewCatId]       = useState(null)
+  const [showAdd, setShowAdd]         = useState(false)
+  const [addName, setAddName]         = useState('')
+  const [addColor, setAddColor]       = useState(PALETTE[0])
+  const [addIcon, setAddIcon]         = useState(CUSTOM_ICONS[0])
 
   const catSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -965,7 +967,9 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
   const handleAdd = e => {
     e.preventDefault()
     if (!addName.trim()) return
-    onAdd({ name: addName.trim(), iconName: addIcon, ...addColor })
+    const id = onAdd({ name: addName.trim(), iconName: addIcon, ...addColor })
+    setNewCatId(id)
+    setTimeout(() => setNewCatId(null), 400)
     setAddName(''); setAddColor(PALETTE[0]); setAddIcon(CUSTOM_ICONS[0]); setShowAdd(false)
   }
 
@@ -994,7 +998,7 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
             : cat
 
           return (
-            <SortableCatCard key={cat.id} id={cat.id}>
+            <SortableCatCard key={cat.id} id={cat.id} className={newCatId === cat.id ? 'cat-entering' : exitingCatId === cat.id ? 'cat-exiting' : ''}>
               {(dragListeners, dragAttributes) => (<>
 
               {/* Row */}
@@ -1109,7 +1113,10 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
                   {(activeCount + archivedCount) === 0 && <div className="mb-3" />}
                   <div className="flex gap-2">
                     <button
-                      onClick={() => { onDelete(cat.id); setDeletingId(null) }}
+                      onClick={() => {
+                        setExitingCatId(cat.id)
+                        setTimeout(() => { onDelete(cat.id); setExitingCatId(null); setDeletingId(null) }, 220)
+                      }}
                       className="flex-1 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-[13px] font-semibold transition-colors"
                     >
                       Delete

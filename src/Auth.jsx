@@ -87,13 +87,6 @@ export default function AuthScreen() {
           </div>
 
           <form onSubmit={handle} className="p-6 space-y-4">
-            {/* Sign-up callout */}
-            {isSignUp && (
-              <div className="bg-[#EEF3EC] rounded-xl px-4 py-3">
-                <p className="text-[12px] text-[#5A7A5C] leading-snug">Your tasks are private and synced across all your devices.</p>
-              </div>
-            )}
-
             <div>
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9BAA9C] mb-1.5">Email</label>
               <input
