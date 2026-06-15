@@ -429,8 +429,7 @@ export default function App() {
         <div key={viewKey} className={`${navDir === 'right' ? 'slide-from-right' : navDir === 'left' ? 'slide-from-left' : 'view-enter'} px-4 md:px-10 pt-5 md:pt-8 pb-36 md:pb-10 max-w-xl mx-auto md:mx-0`}>
 
           {/* Mobile header */}
-          <div className="flex items-center justify-between mb-4 md:hidden">
-            <h1 className="text-xs font-semibold tracking-widest text-[#7C9A7E] uppercase">My Lists</h1>
+          <div className="flex items-center justify-end mb-4 md:hidden">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
