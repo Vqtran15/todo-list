@@ -442,8 +442,8 @@ export default function App() {
                   <CatIcon cat={cat} size={16} style={{ color: cat.color }} />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-[16px] font-semibold leading-tight truncate" style={{ color: cat.dark }}>{cat.name}</h2>
-                  <p className="text-[11px] leading-none mt-0.5" style={{ color: cat.color }}>{activeTasks.length} remaining</p>
+                  <h2 className="text-[22px] font-semibold leading-tight truncate" style={{ color: cat.dark }}>{cat.name}</h2>
+                  <p className="text-[12px] leading-none mt-0.5" style={{ color: cat.color }}>{activeTasks.length} remaining</p>
                 </div>
               </div>
             ) : isSettings ? (
