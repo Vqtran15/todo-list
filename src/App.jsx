@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from './supabase.js'
+import AuthScreen from './Auth.jsx'
 import {
   DndContext, closestCenter,
   PointerSensor, TouchSensor, KeyboardSensor,
@@ -137,8 +138,27 @@ export default function App() {
   const [editText, setEditText]     = useState('')
   const [newTaskId, setNewTaskId]   = useState(null)
   const inputRef = useRef()
+  const [user, setUser]             = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null)
+      setAuthLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null)
+      if (!session) {
+        setCategories([])
+        setTasks([])
+        setLoading(true)
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (!user) return
     async function load() {
       const [catsRes, tasksRes] = await Promise.all([
         supabase.from('categories').select('*').order('sort_order'),
@@ -155,13 +175,12 @@ export default function App() {
       const firstRun = !dbCats || dbCats.length === 0
 
       if (firstRun) {
-        cats = readLocalCats() ?? DEFAULT_CATEGORIES
-        const { error } = await supabase.from('categories').insert(cats.map(catToDb))
+        cats = DEFAULT_CATEGORIES
+        const { error } = await supabase.from('categories').insert(cats.map((c, i) => ({ ...catToDb(c, i), user_id: user.id })))
         if (error) console.error('[supabase] seed categories:', error)
-        // Only seed tasks on true first run — if categories already exist,
-        // an empty tasks table means the user deleted everything intentionally
-        tsk = readLocalTasks() ?? SEED
-        const { error: te } = await supabase.from('tasks').insert(tsk.map(taskToDb))
+        const now = Date.now()
+        tsk = SEED.map((t, i) => ({ ...t, id: now + i }))
+        const { error: te } = await supabase.from('tasks').insert(tsk.map((t, i) => ({ ...taskToDb(t, i), user_id: user.id })))
         if (te) console.error('[supabase] seed tasks:', te)
       } else {
         cats = dbCats.map(dbToCat)
@@ -173,7 +192,7 @@ export default function App() {
       setLoading(false)
     }
     load()
-  }, [])
+  }, [user])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -201,7 +220,7 @@ export default function App() {
     setTimeout(() => setNewTaskId(null), 400)
     setText('')
     inputRef.current?.focus()
-    supabase.from('tasks').insert({ ...taskToDb(newTask, 0), sort_order: sortPos })
+    supabase.from('tasks').insert({ ...taskToDb(newTask, 0), sort_order: sortPos, user_id: user.id })
       .then(({ error }) => { if (error) console.error('[supabase] add task:', error) })
   }
 
@@ -250,7 +269,7 @@ export default function App() {
     const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now()
     const newCat = { id, name, iconName, color, light, dark, custom: true }
     setCategories(p => [...p, newCat])
-    supabase.from('categories').insert(catToDb(newCat, categories.length))
+    supabase.from('categories').insert({ ...catToDb(newCat, categories.length), user_id: user.id })
       .then(({ error }) => { if (error) console.error('[supabase] create cat:', error) })
     return id
   }
@@ -306,7 +325,7 @@ export default function App() {
 
   const allNavItems = [...categories]
 
-  if (loading) return (
+  if (authLoading || (user && loading)) return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8F6F2]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="flex flex-col items-center gap-3">
         <div className="w-10 h-10 rounded-2xl bg-[#EEF3EC] flex items-center justify-center animate-pulse">
@@ -316,6 +335,8 @@ export default function App() {
       </div>
     </div>
   )
+
+  if (!user) return <AuthScreen />
 
   return (
     <div className="min-h-screen flex bg-[#F8F6F2]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
@@ -404,6 +425,8 @@ export default function App() {
                 supabase.from('tasks').delete().eq('archived', true).eq('category', catId)
                   .then(({ error }) => { if (error) console.error('[supabase] clear cat archive:', error) })
               }}
+              user={user}
+              onSignOut={() => supabase.auth.signOut()}
             />
           )}
 
@@ -899,7 +922,7 @@ function SortableCatCard({ id, children }) {
 
 // ── Settings Page ──────────────────────────────────────────────────────────
 
-function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, onClearArchive, onClearCatArchive }) {
+function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, onClearArchive, onClearCatArchive, user, onSignOut }) {
   const [editingId, setEditingId]   = useState(null)
   const [editName, setEditName]     = useState('')
   const [editColor, setEditColor]   = useState(PALETTE[0])
@@ -1136,6 +1159,28 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
 
       {/* ── Archive section ── */}
       <ArchiveSettings tasks={tasks} categories={categories} onRestore={onRestoreTask} onDelete={onDeleteTask} onClearAll={onClearArchive} onClearCat={onClearCatArchive} />
+
+      {/* Account section */}
+      <div className="mt-8 mb-2">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#9BAA9C] mb-3">Account</p>
+        <div className="bg-white rounded-2xl border border-[#E0EAE0] shadow-sm overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="w-9 h-9 rounded-xl bg-[#EEF3EC] flex items-center justify-center shrink-0">
+              <span className="text-[15px] font-semibold text-[#7C9A7E]">{user?.email?.[0]?.toUpperCase()}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] font-medium text-[#3D4A3E] truncate">{user?.email}</p>
+              <p className="text-[11px] text-[#9BAA9C]">Signed in</p>
+            </div>
+            <button
+              onClick={onSignOut}
+              className="h-8 px-3 rounded-lg text-[12px] font-medium text-rose-400 hover:bg-rose-50 transition-all shrink-0"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
