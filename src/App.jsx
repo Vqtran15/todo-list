@@ -194,6 +194,9 @@ export default function App() {
 
       setCategories(cats)
       setTasks(tsk)
+      const saved = localStorage.getItem('todo-last-active')
+      const validId = cats.find(c => c.id === saved) ? saved : cats[0]?.id
+      if (validId) setActive(validId)
       setLoading(false)
     }
     load()
@@ -340,6 +343,7 @@ export default function App() {
     } else {
       if (active !== 'settings') setPrevActive(active)
       setActive(id)
+      if (id !== 'settings') localStorage.setItem('todo-last-active', id)
     }
     setSearch('')
     setSearchOpen(false)
