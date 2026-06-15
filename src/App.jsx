@@ -164,6 +164,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return
     async function load() {
+      setLoading(true)
       const [catsRes, tasksRes] = await Promise.all([
         supabase.from('categories').select('*').order('sort_order'),
         supabase.from('tasks').select('*').order('sort_order'),
