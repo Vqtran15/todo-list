@@ -430,8 +430,22 @@ export default function App() {
         <div key={viewKey} className={`${navDir === 'right' ? 'slide-from-right' : navDir === 'left' ? 'slide-from-left' : 'view-enter'} px-4 md:px-10 pt-5 md:pt-8 pb-36 md:pb-10 max-w-xl mx-auto md:mx-0`}>
 
           {/* Mobile header */}
-          <div className="flex items-center justify-end mb-4 md:hidden">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between mb-4 md:hidden">
+            {/* Left: current view title */}
+            {cat && !isSettings && !isSearching ? (
+              <div className="flex items-center gap-2 min-w-0 flex-1 mr-3">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: cat.light }}>
+                  <CatIcon cat={cat} size={16} style={{ color: cat.color }} />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-[16px] font-semibold leading-tight truncate" style={{ color: cat.dark }}>{cat.name}</h2>
+                  <p className="text-[11px] leading-none mt-0.5" style={{ color: cat.color }}>{activeTasks.length} remaining</p>
+                </div>
+              </div>
+            ) : isSettings ? (
+              <h2 className="text-[16px] font-semibold text-[#3D4A3E]">Settings</h2>
+            ) : <div />}
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => {
                   if (searchOpen) { setSearch(''); setSearchOpen(false) }
@@ -578,7 +592,7 @@ export default function App() {
           {/* ── Category View ── */}
           {!isSearching && !isArchive && cat && (
             <>
-              <div className="flex items-center gap-3 mb-5">
+              <div className="hidden md:flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: cat.light }}>
                   <CatIcon cat={cat} size={20} style={{ color: cat.color }} />
                 </div>
@@ -1063,8 +1077,8 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center gap-2.5 mb-7">
+      {/* Header — desktop only; mobile shows title in top bar */}
+      <div className="hidden md:flex items-center gap-2.5 mb-7">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#EEF3EC]">
           <Settings size={20} style={{ color: '#7C9A7E' }} strokeWidth={1.75} />
         </div>
