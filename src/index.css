@@ -89,3 +89,10 @@ body { margin: 0; }
   100% { opacity: 0; transform: translateX(20px); max-height: 0;     margin-bottom: 0; }
 }
 .cat-exiting { animation: cat-exit 0.25s cubic-bezier(0.4, 0, 0.6, 1) both; overflow: hidden; pointer-events: none; }
+
+/* Search / add field expand */
+@keyframes field-expand {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.field-expand { animation: field-expand 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }

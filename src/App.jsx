@@ -135,6 +135,10 @@ export default function App() {
   const [editingId, setEditingId]   = useState(null)
   const [editText, setEditText]     = useState('')
   const [newTaskId, setNewTaskId]   = useState(null)
+  const [searchOpen, setSearchOpen]   = useState(false)
+  const [addOpen, setAddOpen]         = useState(false)
+  const [clearingIds, setClearingIds] = useState(new Set())
+  const clearingOrderMap              = useRef(new Map())
   const inputRef = useRef()
   const [user, setUser]             = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -238,6 +242,22 @@ export default function App() {
       .then(({ error }) => { if (error) console.error('[supabase] delete:', error) })
   }
 
+  const startClearArchive = (catId = null) => {
+    const toDelete = tasks.filter(t => t.archived && (catId === null || t.category === catId))
+    if (!toDelete.length) return
+    const ids = new Set(toDelete.map(t => t.id))
+    clearingOrderMap.current = new Map(toDelete.map((t, i) => [t.id, i]))
+    setClearingIds(ids)
+    const timeout = Math.min(toDelete.length - 1, 9) * 35 + 380
+    setTimeout(() => {
+      setTasks(p => p.filter(t => !ids.has(t.id)))
+      setClearingIds(new Set())
+      const base = supabase.from('tasks').delete().eq('archived', true)
+      const q = catId ? base.eq('category', catId) : base
+      q.then(({ error }) => { if (error) console.error('[supabase] clear archive:', error) })
+    }, timeout)
+  }
+
   const startEdit  = (id, cur) => { setEditingId(id); setEditText(cur) }
   const saveEdit   = id => {
     if (editText.trim()) {
@@ -318,6 +338,8 @@ export default function App() {
       setActive(id)
     }
     setSearch('')
+    setSearchOpen(false)
+    setAddOpen(false)
     setViewKey(k => k + 1)
   }
 
@@ -369,17 +391,33 @@ export default function App() {
 
         <div className="mx-4 py-3 border-t border-[#D5E2D4] flex items-center justify-between">
           <p className="text-[11px] text-[#9BAA9C]">{tasks.filter(t => !t.archived).length} active tasks</p>
-          <button
-            onClick={() => navTo('settings')}
-            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
-              isSettings
-                ? 'bg-[#7C9A7E22] text-[#4A6B4C]'
-                : 'text-[#9BAA9C] hover:text-[#637265] hover:bg-[#E5EBE4]'
-            }`}
-            title="Settings"
-          >
-            <Settings size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                if (searchOpen) { setSearch(''); setSearchOpen(false) }
+                else { if (isSettings) navTo(prevActive); setSearchOpen(true) }
+              }}
+              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
+                searchOpen
+                  ? 'bg-[#7C9A7E22] text-[#4A6B4C]'
+                  : 'text-[#9BAA9C] hover:text-[#637265] hover:bg-[#E5EBE4]'
+              }`}
+              title="Search"
+            >
+              <Search size={16} />
+            </button>
+            <button
+              onClick={() => navTo('settings')}
+              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
+                isSettings
+                  ? 'bg-[#7C9A7E22] text-[#4A6B4C]'
+                  : 'text-[#9BAA9C] hover:text-[#637265] hover:bg-[#E5EBE4]'
+              }`}
+              title="Settings"
+            >
+              <Settings size={18} />
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -390,7 +428,21 @@ export default function App() {
           {/* Mobile header */}
           <div className="flex items-center justify-between mb-4 md:hidden">
             <h1 className="text-xs font-semibold tracking-widest text-[#7C9A7E] uppercase">My Lists</h1>
-            <button
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (searchOpen) { setSearch(''); setSearchOpen(false) }
+                  else { if (isSettings) navTo(prevActive); setSearchOpen(true) }
+                }}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${
+                  searchOpen
+                    ? 'bg-[#7C9A7E] text-white shadow-sm'
+                    : 'bg-[#EEF3EC] text-[#7C9A7E]'
+                }`}
+              >
+                <Search size={18} strokeWidth={searchOpen ? 2.2 : 1.75} />
+              </button>
+              <button
               onClick={() => navTo('settings')}
               className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${
                 isSettings
@@ -400,6 +452,7 @@ export default function App() {
             >
               <Settings size={20} strokeWidth={isSettings ? 2.2 : 1.75} />
             </button>
+            </div>
           </div>
 
           {/* Settings page */}
@@ -413,37 +466,38 @@ export default function App() {
               onReorder={reorderCategories}
               onRestoreTask={restore}
               onDeleteTask={remove}
-              onClearArchive={() => {
-                setTasks(p => p.filter(t => !t.archived))
-                supabase.from('tasks').delete().eq('archived', true)
-                  .then(({ error }) => { if (error) console.error('[supabase] clear archive:', error) })
-              }}
-              onClearCatArchive={catId => {
-                setTasks(p => p.filter(t => !(t.archived && t.category === catId)))
-                supabase.from('tasks').delete().eq('archived', true).eq('category', catId)
-                  .then(({ error }) => { if (error) console.error('[supabase] clear cat archive:', error) })
-              }}
+              onClearArchive={() => startClearArchive()}
+              onClearCatArchive={catId => startClearArchive(catId)}
               user={user}
               onSignOut={() => supabase.auth.signOut()}
+              clearingIds={clearingIds}
+              clearingOrderMap={clearingOrderMap}
             />
           )}
 
-          {/* Search — hidden on Settings page */}
-          {!isSettings && <div className="mb-5 relative">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9BAA9C]" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search all tasks…"
-              className="w-full pl-10 pr-9 py-3 rounded-xl bg-white border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm transition-all"
-              style={{ borderColor: isSearching ? '#7C9A7EBB' : '#DBE8DA', fontSize: 16 }}
-            />
-            {isSearching && (
-              <button onClick={() => setSearch('')} className="absolute right-0 top-0 w-11 h-full flex items-center justify-center text-[#9BAA9C] hover:text-[#637265]">
+          {/* Search input — visible when searchOpen and not on Settings */}
+          {!isSettings && searchOpen && (
+            <div className="mb-5 relative field-expand">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9BAA9C]" />
+              <input
+                autoFocus
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') { setSearch(''); setSearchOpen(false) } }}
+                placeholder="Search all tasks…"
+                className="w-full pl-10 pr-9 py-3 rounded-xl bg-white border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm transition-all"
+                style={{ borderColor: isSearching ? '#7C9A7EBB' : '#DBE8DA', fontSize: 16 }}
+                onFocus={e => (e.target.style.borderColor = '#7C9A7EBB')}
+                onBlur={e  => (e.target.style.borderColor = isSearching ? '#7C9A7EBB' : '#DBE8DA')}
+              />
+              <button
+                onClick={() => { setSearch(''); setSearchOpen(false) }}
+                className="absolute right-0 top-0 w-11 h-full flex items-center justify-center text-[#9BAA9C] hover:text-[#637265]"
+              >
                 <X size={16} />
               </button>
-            )}
-          </div>}
+            </div>
+          )}
 
           {/* ── Search Results ── */}
           {isSearching && (
@@ -485,7 +539,7 @@ export default function App() {
                   <p className="text-xs text-[#9BAA9C] mt-0.5">{archiveCount} completed</p>
                 </div>
                 {archiveCount > 0 && (
-                  <button onClick={() => { setTasks(p => p.filter(t => !t.archived)); supabase.from('tasks').delete().eq('archived', true).then(({ error }) => { if (error) console.error('[supabase] clear archive:', error) }) }} className="ml-auto text-xs text-[#CABFB5] hover:text-rose-400 py-2 px-1 transition-colors">
+                  <button onClick={() => startClearArchive()} className="ml-auto text-xs text-[#CABFB5] hover:text-rose-400 py-2 px-1 transition-colors">
                     Clear all
                   </button>
                 )}
@@ -502,7 +556,14 @@ export default function App() {
                           <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: c.color }}>{c.name}</span>
                         </div>
                         <div className="space-y-2">
-                          {done.map(t => <ArchiveRow key={t.id} task={t} cat={c} onRestore={restore} onDelete={remove} />)}
+                          {done.map(t => (
+                            <ArchiveRow
+                              key={t.id} task={t} cat={c}
+                              onRestore={restore} onDelete={remove}
+                              clearing={clearingIds.has(t.id)}
+                              clearingIndex={clearingOrderMap.current.get(t.id) ?? 0}
+                            />
+                          ))}
                         </div>
                       </div>
                     )
@@ -524,25 +585,44 @@ export default function App() {
                 </div>
               </div>
 
-              <form onSubmit={add} className="flex gap-2 mb-5">
-                <input
-                  ref={inputRef}
-                  value={text}
-                  onChange={e => setText(e.target.value)}
-                  placeholder={`Add to ${cat.name}…`}
-                  className="flex-1 px-4 py-3 rounded-xl bg-white border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm transition-all"
-                  style={{ borderColor: '#DBE8DA', fontSize: 16 }}
-                  onFocus={e => (e.target.style.borderColor = cat.color + 'BB')}
-                  onBlur={e => (e.target.style.borderColor = '#DBE8DA')}
-                />
+              {addOpen ? (
+                <form onSubmit={add} className="flex gap-2 mb-5 field-expand">
+                  <input
+                    ref={inputRef}
+                    autoFocus
+                    value={text}
+                    onChange={e => setText(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Escape') { setAddOpen(false); setText('') } }}
+                    placeholder={`Add to ${cat.name}…`}
+                    className="flex-1 px-4 py-3 rounded-xl bg-white border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm transition-all"
+                    style={{ borderColor: '#DBE8DA', fontSize: 16 }}
+                    onFocus={e => (e.target.style.borderColor = cat.color + 'BB')}
+                    onBlur={e => (e.target.style.borderColor = '#DBE8DA')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { setAddOpen(false); setText('') }}
+                    className="w-12 flex items-center justify-center rounded-xl bg-[#F0F2EF] text-[#9BAA9C] hover:text-[#637265] transition-all"
+                  >
+                    <X size={18} />
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-3 rounded-xl text-white font-semibold shadow-sm hover:opacity-80 active:scale-95 transition-all"
+                    style={{ backgroundColor: cat.color, fontSize: 15, minWidth: 64 }}
+                  >
+                    Add
+                  </button>
+                </form>
+              ) : (
                 <button
-                  type="submit"
-                  className="px-5 py-3 rounded-xl text-white font-semibold shadow-sm hover:opacity-80 active:scale-95 transition-all"
-                  style={{ backgroundColor: cat.color, fontSize: 15, minWidth: 64 }}
+                  onClick={() => setAddOpen(true)}
+                  className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl border border-dashed border-[#C8DAC7] text-[#9BAA9C] hover:text-[#7C9A7E] hover:border-[#7C9A7E88] hover:bg-[#F8FAF8] mb-5 transition-all"
                 >
-                  Add
+                  <Plus size={16} />
+                  <span style={{ fontSize: 14 }}>Add to {cat.name}…</span>
                 </button>
-              </form>
+              )}
 
               {activeTasks.length === 0 ? (
                 <div className="text-center py-14">
@@ -657,12 +737,14 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
 function SortableTaskRow(props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: props.task.id })
+  // Lock animation class at mount — prevents re-triggering when isNew clears after 400ms
+  const [animClass] = useState(() => props.isNew ? 'task-entering' : 'task-stagger-in')
   const delay = props.isNew ? 0 : Math.min(props.staggerIndex, 10) * 40
 
   return (
     <div
       ref={setNodeRef}
-      className={props.isNew ? 'task-entering' : 'task-stagger-in'}
+      className={animClass}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -767,9 +849,12 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
 // ── Archive Row ────────────────────────────────────────────────────────────
 
-function ArchiveRow({ task, cat, onRestore, onDelete }) {
+function ArchiveRow({ task, cat, onRestore, onDelete, clearing = false, clearingIndex = 0 }) {
   return (
-    <div className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border border-[#EAEAE8] shadow-sm">
+    <div
+      className={`flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border border-[#EAEAE8] shadow-sm ${clearing ? 'task-deleting' : ''}`}
+      style={clearing ? { animationDelay: `${clearingIndex * 35}ms` } : undefined}
+    >
       <div className="shrink-0 w-[20px] h-[20px] rounded-full flex items-center justify-center" style={{ backgroundColor: cat.color }}>
         <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -920,7 +1005,7 @@ function SortableCatCard({ id, className = '', children }) {
 
 // ── Settings Page ──────────────────────────────────────────────────────────
 
-function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, onClearArchive, onClearCatArchive, user, onSignOut }) {
+function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, onClearArchive, onClearCatArchive, user, onSignOut, clearingIds, clearingOrderMap }) {
   const [editingId, setEditingId]     = useState(null)
   const [editName, setEditName]       = useState('')
   const [editColor, setEditColor]     = useState(PALETTE[0])
@@ -1163,7 +1248,7 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
         </div>
 
       {/* ── Archive section ── */}
-      <ArchiveSettings tasks={tasks} categories={categories} onRestore={onRestoreTask} onDelete={onDeleteTask} onClearAll={onClearArchive} onClearCat={onClearCatArchive} />
+      <ArchiveSettings tasks={tasks} categories={categories} onRestore={onRestoreTask} onDelete={onDeleteTask} onClearAll={onClearArchive} onClearCat={onClearCatArchive} clearingIds={clearingIds} clearingOrderMap={clearingOrderMap} />
 
       {/* Account section */}
       <div className="mt-8 mb-2">
@@ -1192,7 +1277,7 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
 
 // ── Archive Settings section ───────────────────────────────────────────────
 
-function ArchiveSettings({ tasks, categories, onRestore, onDelete, onClearAll, onClearCat }) {
+function ArchiveSettings({ tasks, categories, onRestore, onDelete, onClearAll, onClearCat, clearingIds = new Set(), clearingOrderMap = { current: new Map() } }) {
   const [confirmClear, setConfirmClear] = useState(false)
   const [expanded, setExpanded]         = useState(new Set())
   const totalArchived = tasks.filter(t => t.archived).length
@@ -1284,10 +1369,13 @@ function ArchiveSettings({ tasks, categories, onRestore, onDelete, onClearAll, o
               {/* Expanded task list */}
               {isExpanded && (
                 <div className="border-t border-[#F4F6F3] bg-[#FAFBF9]">
-                  {c.archivedTasks.map((t, ti) => (
+                  {c.archivedTasks.map((t, ti) => {
+                    const clearing = clearingIds.has(t.id)
+                    return (
                     <div
                       key={t.id}
-                      className={`flex items-center gap-2.5 px-4 py-2.5 ${ti < c.archivedTasks.length - 1 ? 'border-b border-[#F4F6F3]' : ''}`}
+                      className={`flex items-center gap-2.5 px-4 py-2.5 ${ti < c.archivedTasks.length - 1 ? 'border-b border-[#F4F6F3]' : ''} ${clearing ? 'task-deleting' : ''}`}
+                      style={clearing ? { animationDelay: `${(clearingOrderMap.current.get(t.id) ?? 0) * 35}ms` } : undefined}
                     >
                       <div className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: c.color }}>
                         <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -1308,7 +1396,8 @@ function ArchiveSettings({ tasks, categories, onRestore, onDelete, onClearAll, o
                         <X size={13} />
                       </button>
                     </div>
-                  ))}
+                  )})}
+
                   <div className="px-4 py-2.5 flex justify-end border-t border-[#F0F0EE]">
                     <button
                       onClick={() => { onClearCat(c.id); setExpanded(prev => { const n = new Set(prev); n.delete(c.id); return n }) }}
