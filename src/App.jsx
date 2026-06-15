@@ -68,7 +68,6 @@ const CUSTOM_ICONS = [
 
 const DEFAULT_CATEGORIES = [
   { id: 'general',   name: 'General',   iconName: 'clipboard-list',  color: '#7C9A7E', light: '#EEF3EC', dark: '#4A6B4C', custom: false },
-  { id: 'afsp',      name: 'AFSP',      iconName: 'heart-handshake', color: '#9B8EB8', light: '#F0EDF7', dark: '#6A5D8A', custom: false },
   { id: 'groceries', name: 'Groceries', iconName: 'shopping-cart',   color: '#B89A6A', light: '#F6F0E4', dark: '#8A6E42', custom: false },
   { id: 'projects',  name: 'Projects',  iconName: 'folder-kanban',   color: '#7A9BB5', light: '#EAF0F6', dark: '#4A6B85', custom: false },
 ]
@@ -90,10 +89,9 @@ const PALETTE = [
 ]
 
 const SEED = [
-  { id: 1, text: 'Tap the circle to complete a task',  category: 'general',   archived: false },
-  { id: 2, text: 'Review meeting notes',               category: 'afsp',      archived: false },
-  { id: 3, text: 'Eggs, milk, avocados',               category: 'groceries', archived: false },
-  { id: 4, text: 'Define project milestones',          category: 'projects',  archived: false },
+  { id: 1, text: 'Tap the circle to complete a task', category: 'general',   archived: false },
+  { id: 2, text: 'Eggs, milk, avocados',              category: 'groceries', archived: false },
+  { id: 3, text: 'Define project milestones',         category: 'projects',  archived: false },
 ]
 
 // ── Supabase ↔ app shape mappers ───────────────────────────────────────────
