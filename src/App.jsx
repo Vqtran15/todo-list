@@ -66,6 +66,8 @@ const CUSTOM_ICONS = [
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
+const MAX_LISTS = 5
+
 const DEFAULT_CATEGORIES = [
   { id: 'general',   name: 'General',   iconName: 'clipboard-list',  color: '#7C9A7E', light: '#EEF3EC', dark: '#4A6B4C', custom: false },
   { id: 'groceries', name: 'Groceries', iconName: 'shopping-cart',   color: '#B89A6A', light: '#F6F0E4', dark: '#8A6E42', custom: false },
@@ -284,6 +286,7 @@ export default function App() {
   }
 
   const createCat = ({ name, iconName, color, light, dark }) => {
+    if (categories.length >= MAX_LISTS) return null
     const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now()
     const newCat = { id, name, iconName, color, light, dark, custom: true }
     setCategories(p => [...p, newCat])
@@ -661,7 +664,7 @@ export default function App() {
       {/* ════════ MOBILE BOTTOM NAV ════════ */}
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 bg-[#ECF0EA] border-t border-[#D5E2D4] z-10 flex"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)' }}
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', paddingRight: 'env(safe-area-inset-right)' }}
       >
         <div className="flex overflow-x-auto no-scrollbar flex-1">
           {allNavItems.map(c => {
@@ -678,7 +681,7 @@ export default function App() {
               >
                 {on && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full" style={{ backgroundColor: c.color }} />}
                 <CatIcon cat={c} size={24} strokeWidth={on ? 2 : 1.6} />
-                <span className="text-[11px] font-medium mt-1.5 leading-none max-w-[60px] truncate">{c.name}</span>
+                <span className="text-[11px] font-medium mt-1.5 leading-none max-w-[52px] truncate">{c.name}</span>
                 {count > 0 && (
                   <span
                     className="absolute top-2 right-1/2 translate-x-5 w-4 h-4 rounded-full text-white flex items-center justify-center font-bold"
@@ -1224,28 +1227,34 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
       </DndContext>
 
         {/* Add new list */}
-        <div className="mt-2 bg-white rounded-2xl border border-dashed border-[#C8DAC7] shadow-sm overflow-hidden">
-          {showAdd ? (
-            <div className="p-4">
-              <p className="text-[12px] font-semibold text-[#5A6B5C] mb-3">New List</p>
-              <NewCatForm
-                name={addName} setName={setAddName}
-                color={addColor} setColor={setAddColor}
-                icon={addIcon}  setIcon={setAddIcon}
-                onSubmit={handleAdd}
-                onClose={() => { setShowAdd(false); setAddName('') }}
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => { setShowAdd(true); setEditingId(null); setDeletingId(null) }}
-              className="w-full flex items-center gap-2.5 px-4 py-3.5 text-[#9BAA9C] hover:text-[#7C9A7E] hover:bg-[#F4F8F4] transition-all"
-            >
-              <Plus size={16} />
-              <span className="text-[13px] font-medium">New List</span>
-            </button>
-          )}
-        </div>
+        {categories.length >= MAX_LISTS ? (
+          <div className="mt-2 bg-white rounded-2xl border border-dashed border-[#E0EAE0] shadow-sm px-4 py-3.5 flex items-center gap-2.5">
+            <span className="text-[13px] font-medium text-[#B5C4B6]">{MAX_LISTS}/{MAX_LISTS} lists — delete one to add another</span>
+          </div>
+        ) : (
+          <div className="mt-2 bg-white rounded-2xl border border-dashed border-[#C8DAC7] shadow-sm overflow-hidden">
+            {showAdd ? (
+              <div className="p-4">
+                <p className="text-[12px] font-semibold text-[#5A6B5C] mb-3">New List</p>
+                <NewCatForm
+                  name={addName} setName={setAddName}
+                  color={addColor} setColor={setAddColor}
+                  icon={addIcon}  setIcon={setAddIcon}
+                  onSubmit={handleAdd}
+                  onClose={() => { setShowAdd(false); setAddName('') }}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => { setShowAdd(true); setEditingId(null); setDeletingId(null) }}
+                className="w-full flex items-center gap-2.5 px-4 py-3.5 text-[#9BAA9C] hover:text-[#7C9A7E] hover:bg-[#F4F8F4] transition-all"
+              >
+                <Plus size={16} />
+                <span className="text-[13px] font-medium">New List</span>
+              </button>
+            )}
+          </div>
+        )}
 
       {/* ── Archive section ── */}
       <ArchiveSettings tasks={tasks} categories={categories} onRestore={onRestoreTask} onDelete={onDeleteTask} onClearAll={onClearArchive} onClearCat={onClearCatArchive} clearingIds={clearingIds} clearingOrderMap={clearingOrderMap} />
