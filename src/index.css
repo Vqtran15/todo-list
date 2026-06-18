@@ -90,6 +90,26 @@ body { margin: 0; }
 }
 .cat-exiting { animation: cat-exit 0.25s cubic-bezier(0.4, 0, 0.6, 1) both; overflow: hidden; pointer-events: none; }
 
+/* Un-star exit in Starred view — transform+opacity only (GPU composited) */
+@keyframes task-unstar {
+  0%   { opacity: 1; transform: scaleY(1)   translateY(0); }
+  100% { opacity: 0; transform: scaleY(0.7) translateY(-6px); }
+}
+.task-unstarring {
+  animation: task-unstar 0.22s cubic-bezier(0.4, 0, 0.2, 1) both;
+  transform-origin: top center;
+  pointer-events: none;
+}
+
+/* Star button bounce when activated */
+@keyframes star-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.5); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.star-pop { animation: star-pop 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
 /* Search / add field expand */
 @keyframes field-expand {
   from { opacity: 0; transform: translateY(-5px); }

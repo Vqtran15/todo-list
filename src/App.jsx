@@ -79,6 +79,11 @@ const ARCHIVE_CAT = {
   color: '#9BAA9C', light: '#F0F2EE', dark: '#5A6B5C',
 }
 
+const STARRED_CAT = {
+  id: 'starred', name: 'Starred', iconName: 'star',
+  color: '#C4A93A', light: '#FBF6E3', dark: '#8A7020',
+}
+
 const PALETTE = [
   { color: '#C47A7A', light: '#F5EDED', dark: '#8A4A4A' },
   { color: '#7AB8B0', light: '#E9F4F3', dark: '#4A8A82' },
@@ -100,8 +105,8 @@ const SEED = [
 
 const catToDb  = (c, i) => ({ id: c.id, name: c.name, icon_name: c.iconName, color: c.color, light: c.light, dark: c.dark, custom: c.custom ?? false, sort_order: i })
 const dbToCat  = r => ({ id: r.id, name: r.name, iconName: r.icon_name, color: r.color, light: r.light, dark: r.dark, custom: r.custom })
-const taskToDb = (t, i) => ({ id: t.id, text: t.text, category: t.category, archived: t.archived, sort_order: i })
-const dbToTask = r => ({ id: r.id, text: r.text, category: r.category, archived: r.archived })
+const taskToDb = (t, i) => ({ id: t.id, text: t.text, category: t.category, archived: t.archived, starred: t.starred ?? false, sort_order: i })
+const dbToTask = r => ({ id: r.id, text: r.text, category: r.category, archived: r.archived, starred: r.starred ?? false })
 
 // Read localStorage for one-time migration on first Supabase load
 function readLocalCats() {
@@ -210,9 +215,11 @@ export default function App() {
 
   const isArchive    = active === 'archive'
   const isSettings   = active === 'settings'
+  const isStarred    = active === 'starred'
   const isSearching  = search.trim().length > 0 && !isSettings
   const cat          = categories.find(c => c.id === active)
   const archiveCount = tasks.filter(t => t.archived).length
+  const starredTasks = tasks.filter(t => t.starred && !t.archived)
   const activeTasks  = tasks.filter(t => t.category === active && !t.archived)
   const searchResults = isSearching
     ? tasks.filter(t => !t.archived && t.text.toLowerCase().includes(search.toLowerCase()))
@@ -221,7 +228,7 @@ export default function App() {
   const add = e => {
     e.preventDefault()
     if (!text.trim() || isArchive) return
-    const newTask = { id: Date.now(), text: text.trim(), category: active, archived: false }
+    const newTask = { id: Date.now(), text: text.trim(), category: active, archived: false, starred: false }
     const sortPos = -(tasks.filter(t => t.category === active && !t.archived).length + 1)
     setTasks(p => [newTask, ...p])
     setNewTaskId(newTask.id)
@@ -246,6 +253,15 @@ export default function App() {
     setTasks(p => p.filter(t => t.id !== id))
     supabase.from('tasks').delete().eq('id', id)
       .then(({ error }) => { if (error) console.error('[supabase] delete:', error) })
+  }
+
+  const toggleStar = id => {
+    const task = tasks.find(t => t.id === id)
+    if (!task) return
+    const newVal = !task.starred
+    setTasks(p => p.map(t => t.id === id ? { ...t, starred: newVal } : t))
+    supabase.from('tasks').update({ starred: newVal }).eq('id', id)
+      .then(({ error }) => { if (error) console.error('[supabase] star:', error) })
   }
 
   const startClearArchive = (catId = null) => {
@@ -343,7 +359,7 @@ export default function App() {
     } else {
       if (active !== 'settings') setPrevActive(active)
       setActive(id)
-      if (id !== 'settings') localStorage.setItem('todo-last-active', id)
+      if (id !== 'settings' && id !== 'starred') localStorage.setItem('todo-last-active', id)
     }
     setSearch('')
     setSearchOpen(false)
@@ -397,6 +413,20 @@ export default function App() {
 
         </nav>
 
+        <div className="px-2.5 pb-1">
+          <button
+            onClick={() => navTo('starred')}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
+            style={isStarred ? { backgroundColor: '#C4A93A22', color: '#8A7020' } : { color: '#637265' }}
+          >
+            <Star size={16} fill={isStarred ? 'currentColor' : 'none'} style={{ color: isStarred ? '#C4A93A' : '#9BAA9C', flexShrink: 0 }} />
+            <span className={`flex-1 text-[13px] ${isStarred ? 'font-semibold' : 'font-medium'}`}>Starred</span>
+            {starredTasks.length > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: '#C4A93A' }}>{starredTasks.length}</span>
+            )}
+          </button>
+        </div>
+
         <div className="mx-4 py-3 border-t border-[#D5E2D4] flex items-center justify-between">
           <p className="text-[11px] text-[#9BAA9C]">{tasks.filter(t => !t.archived).length} active tasks</p>
           <div className="flex items-center gap-1">
@@ -448,6 +478,8 @@ export default function App() {
               </div>
             ) : isSettings ? (
               <h2 className="text-[16px] font-semibold text-[#3D4A3E]">Settings</h2>
+            ) : isStarred ? (
+              <h2 className="text-[22px] font-semibold" style={{ color: '#8A7020' }}>Starred</h2>
             ) : <div />}
             <div className="flex items-center gap-2 shrink-0">
               <button
@@ -464,15 +496,28 @@ export default function App() {
                 <Search size={18} strokeWidth={searchOpen ? 2.2 : 1.75} />
               </button>
               <button
-              onClick={() => navTo('settings')}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${
-                isSettings
-                  ? 'bg-[#7C9A7E] text-white shadow-sm'
-                  : 'bg-[#EEF3EC] text-[#7C9A7E]'
-              }`}
-            >
-              <Settings size={20} strokeWidth={isSettings ? 2.2 : 1.75} />
-            </button>
+                onClick={() => navTo('starred')}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 relative ${
+                  isStarred
+                    ? 'bg-[#C4A93A] text-white shadow-sm'
+                    : 'bg-[#EEF3EC] text-[#C4A93A]'
+                }`}
+              >
+                <Star size={18} fill={isStarred ? 'currentColor' : 'none'} strokeWidth={isStarred ? 2.2 : 1.75} />
+                {starredTasks.length > 0 && !isStarred && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#C4A93A]" />
+                )}
+              </button>
+              <button
+                onClick={() => navTo('settings')}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${
+                  isSettings
+                    ? 'bg-[#7C9A7E] text-white shadow-sm'
+                    : 'bg-[#EEF3EC] text-[#7C9A7E]'
+                }`}
+              >
+                <Settings size={20} strokeWidth={isSettings ? 2.2 : 1.75} />
+              </button>
             </div>
           </div>
 
@@ -541,6 +586,7 @@ export default function App() {
                           onEditChange={setEditText} onStartEdit={startEdit}
                           onSaveEdit={saveEdit} onCancelEdit={cancelEdit}
                           onArchive={archive} onDelete={remove}
+                          onToggleStar={toggleStar}
                         />
                       )
                     })}
@@ -593,8 +639,53 @@ export default function App() {
             </>
           )}
 
+          {/* ── Starred View ── */}
+          {!isSearching && isStarred && (
+            <>
+              <div className="hidden md:flex items-center gap-2.5 mb-6">
+                <Star size={22} style={{ color: '#C4A93A' }} strokeWidth={1.75} />
+                <div>
+                  <h2 className="text-xl font-semibold" style={{ color: '#8A7020' }}>Starred</h2>
+                  <p className="text-xs text-[#9BAA9C] mt-0.5">{starredTasks.length} starred</p>
+                </div>
+              </div>
+              {starredTasks.length === 0
+                ? <div className="text-center py-14">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-[#FBF6E3]">
+                      <Star size={28} style={{ color: '#C4A93A', opacity: 0.5 }} />
+                    </div>
+                    <p className="text-sm text-[#B5C4B6]">No starred tasks yet — tap the star on any task.</p>
+                  </div>
+                : categories.map(c => {
+                    const items = starredTasks.filter(t => t.category === c.id)
+                    if (!items.length) return null
+                    return (
+                      <div key={c.id} className="mb-5">
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <CatIcon cat={c} size={13} style={{ color: c.color }} />
+                          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: c.color }}>{c.name}</span>
+                        </div>
+                        <div className="space-y-2">
+                          {items.map(t => (
+                            <SearchRow
+                              key={t.id} task={t} cat={c}
+                              isEditing={editingId === t.id} editText={editText}
+                              onEditChange={setEditText} onStartEdit={startEdit}
+                              onSaveEdit={saveEdit} onCancelEdit={cancelEdit}
+                              onArchive={archive} onDelete={remove}
+                              onToggleStar={toggleStar}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })
+              }
+            </>
+          )}
+
           {/* ── Category View ── */}
-          {!isSearching && !isArchive && cat && (
+          {!isSearching && !isArchive && !isStarred && cat && (
             <>
               <div className="hidden md:flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: cat.light }}>
@@ -668,6 +759,7 @@ export default function App() {
                           onEditChange={setEditText} onStartEdit={startEdit}
                           onSaveEdit={saveEdit} onCancelEdit={cancelEdit}
                           onArchive={archive} onDelete={remove}
+                          onToggleStar={toggleStar}
                         />
                       ))}
                     </div>
@@ -780,7 +872,7 @@ function SortableTaskRow(props) {
 
 // ── Task Row ───────────────────────────────────────────────────────────────
 
-function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, isDragging, dragListeners, dragAttributes }) {
+function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, onToggleStar, isDragging, dragListeners, dragAttributes }) {
   const [completing, setCompleting]   = useState(false)
   const [deleting, setDeleting]       = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -841,7 +933,17 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
       )}
 
       {!isEditing && (
-        <div className="flex items-center gap-0.5 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+        <div className={`flex items-center gap-0.5 shrink-0 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
+          <button
+            onClick={() => onToggleStar(task.id)}
+            className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
+              task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'
+            }`}
+          >
+            <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}>
+              <Star size={14} fill={task.starred ? 'currentColor' : 'none'} />
+            </span>
+          </button>
           <button
             onClick={() => onStartEdit(task.id, task.text)}
             className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all"
@@ -894,9 +996,20 @@ function ArchiveRow({ task, cat, onRestore, onDelete, clearing = false, clearing
 
 // ── Search Row ─────────────────────────────────────────────────────────────
 
-function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete }) {
+function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, onToggleStar }) {
+  const [unstarring, setUnstarring] = useState(false)
+
+  const handleToggleStar = () => {
+    if (task.starred) {
+      setUnstarring(true)
+      setTimeout(() => onToggleStar(task.id), 200)
+    } else {
+      onToggleStar(task.id)
+    }
+  }
+
   return (
-    <div className="group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border border-[#E0EAE0] shadow-sm">
+    <div className={`group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border border-[#E0EAE0] shadow-sm ${unstarring ? 'task-unstarring' : ''}`}>
       <button onClick={() => onArchive(task.id)} className="shrink-0 -m-1 p-1 rounded-full active:scale-90 transition-transform">
         <div className="w-[20px] h-[20px] rounded-full border-2" style={{ borderColor: '#C0D0BF' }} />
       </button>
@@ -912,13 +1025,23 @@ function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, 
       ) : (
         <span className="flex-1 text-[#3D4A3E] select-none leading-snug" style={{ fontSize: 14 }}>{task.text}</span>
       )}
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-1 shrink-0">
         <span className="text-[11px] font-semibold px-2 py-1 rounded-full flex items-center gap-1" style={{ backgroundColor: cat.light, color: cat.dark }}>
           <CatIcon cat={cat} size={10} />
           {cat.name}
         </span>
         {!isEditing && (
-          <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+          <div className={`flex items-center gap-0.5 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
+            <button
+              onClick={handleToggleStar}
+              className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
+                task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'
+              }`}
+            >
+              <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}>
+                <Star size={14} fill={task.starred ? 'currentColor' : 'none'} />
+              </span>
+            </button>
             <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
               <Pencil size={14} />
             </button>
