@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from './supabase.js'
 import AuthScreen from './Auth.jsx'
 import {
-  DndContext, closestCenter,
+  DndContext, DragOverlay, closestCenter,
   PointerSensor, TouchSensor, KeyboardSensor,
   useSensor, useSensors,
 } from '@dnd-kit/core'
@@ -144,6 +144,7 @@ export default function App() {
   const [newTaskId, setNewTaskId]   = useState(null)
   const [searchOpen, setSearchOpen]   = useState(false)
   const [addOpen, setAddOpen]         = useState(false)
+  const [dragActiveId, setDragActiveId] = useState(null)
   const [clearingIds, setClearingIds] = useState(new Set())
   const clearingOrderMap              = useRef(new Map())
   const inputRef = useRef()
@@ -292,6 +293,7 @@ export default function App() {
   const cancelEdit = () => setEditingId(null)
 
   const handleDragEnd = ({ active: a, over }) => {
+    setDragActiveId(null)
     if (!over || a.id === over.id) return
     const si = tasks.findIndex(t => t.id === a.id)
     const oi = tasks.findIndex(t => t.id === over.id)
@@ -747,7 +749,13 @@ export default function App() {
                   </p>
                 </div>
               ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragStart={({ active: a }) => setDragActiveId(a.id)}
+                  onDragCancel={() => setDragActiveId(null)}
+                  onDragEnd={handleDragEnd}
+                >
                   <SortableContext items={activeTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-2">
                       {activeTasks.map((t, i) => (
@@ -764,6 +772,23 @@ export default function App() {
                       ))}
                     </div>
                   </SortableContext>
+                  <DragOverlay dropAnimation={null}>
+                    {dragActiveId ? (() => {
+                      const t = activeTasks.find(t => t.id === dragActiveId)
+                      return t ? (
+                        <TaskRow
+                          task={t} cat={cat}
+                          isEditing={false} editText=""
+                          onEditChange={() => {}} onStartEdit={() => {}}
+                          onSaveEdit={() => {}} onCancelEdit={() => {}}
+                          onArchive={() => {}} onDelete={() => {}}
+                          onToggleStar={() => {}}
+                          isDragging={true}
+                          dragListeners={{}} dragAttributes={{}}
+                        />
+                      ) : null
+                    })() : null}
+                  </DragOverlay>
                 </DndContext>
               )}
             </>
@@ -857,15 +882,18 @@ function SortableTaskRow(props) {
   return (
     <div
       ref={setNodeRef}
-      className={animClass}
+      className={isDragging ? '' : animClass}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
-        zIndex: isDragging ? 10 : 'auto',
-        animationDelay: `${delay}ms`,
+        animationDelay: isDragging ? undefined : `${delay}ms`,
+        opacity: isDragging ? 0 : undefined,
+        height: isDragging ? 60 : undefined,
       }}
     >
-      <TaskRow {...props} isDragging={isDragging} dragListeners={listeners} dragAttributes={attributes} />
+      {!isDragging && (
+        <TaskRow {...props} isDragging={false} dragListeners={listeners} dragAttributes={attributes} />
+      )}
     </div>
   )
 }
