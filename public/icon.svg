@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#7C9A7E"/>
+  <g transform="translate(128, 112)" stroke="white" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- clipboard body -->
+    <rect x="20" y="36" width="216" height="256" rx="18" fill="none"/>
+    <!-- clipboard top clip -->
+    <path d="M96 36 L96 16 Q96 4 108 4 L148 4 Q160 4 160 16 L160 36"/>
+    <!-- lines -->
+    <line x1="72" y1="120" x2="184" y2="120"/>
+    <line x1="72" y1="168" x2="184" y2="168"/>
+    <line x1="72" y1="216" x2="144" y2="216"/>
+    <!-- check -->
+    <polyline points="60,108 72,120 96,96"/>
+    <polyline points="60,156 72,168 96,144"/>
+  </g>
+</svg>

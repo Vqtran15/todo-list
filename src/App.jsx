@@ -150,6 +150,8 @@ export default function App() {
   const inputRef = useRef()
   const [user, setUser]             = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+  const [toast, setToast]           = useState(null)
+  const toastTimer                  = useRef(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -166,6 +168,38 @@ export default function App() {
     })
     return () => subscription.unsubscribe()
   }, [])
+
+  const showToast = (msg, type = 'error') => {
+    clearTimeout(toastTimer.current)
+    setToast({ msg, type })
+    toastTimer.current = setTimeout(() => setToast(null), 4000)
+  }
+
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase
+      .channel('realtime-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'tasks' }, ({ new: row }) => {
+        setTasks(p => p.some(t => t.id === row.id) ? p : [...p, dbToTask(row)])
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'tasks' }, ({ new: row }) => {
+        setTasks(p => p.map(t => t.id === row.id ? { ...t, ...dbToTask(row) } : t))
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'tasks' }, ({ old: row }) => {
+        setTasks(p => p.filter(t => t.id !== row.id))
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'categories' }, ({ new: row }) => {
+        setCategories(p => p.some(c => c.id === row.id) ? p : [...p, dbToCat(row)])
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'categories' }, ({ new: row }) => {
+        setCategories(p => p.map(c => c.id === row.id ? { ...c, ...dbToCat(row) } : c))
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'categories' }, ({ old: row }) => {
+        setCategories(p => p.filter(c => c.id !== row.id))
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [user])
 
   useEffect(() => {
     if (!user) return
@@ -236,33 +270,38 @@ export default function App() {
     setTimeout(() => setNewTaskId(null), 400)
     setText('')
     inputRef.current?.focus()
+    const prevTasks = tasks
     supabase.from('tasks').insert({ ...taskToDb(newTask, 0), sort_order: sortPos, user_id: user.id })
-      .then(({ error }) => { if (error) console.error('[supabase] add task:', error) })
+      .then(({ error }) => { if (error) { setTasks(prevTasks); showToast('Failed to add task.') } })
   }
 
   const archive = id => {
+    const prev = tasks
     setTasks(p => p.map(t => t.id === id ? { ...t, archived: true } : t))
     supabase.from('tasks').update({ archived: true }).eq('id', id)
-      .then(({ error }) => { if (error) console.error('[supabase] archive:', error) })
+      .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to complete task.') } })
   }
   const restore = id => {
+    const prev = tasks
     setTasks(p => p.map(t => t.id === id ? { ...t, archived: false } : t))
     supabase.from('tasks').update({ archived: false }).eq('id', id)
-      .then(({ error }) => { if (error) console.error('[supabase] restore:', error) })
+      .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to restore task.') } })
   }
   const remove = id => {
+    const prev = tasks
     setTasks(p => p.filter(t => t.id !== id))
     supabase.from('tasks').delete().eq('id', id)
-      .then(({ error }) => { if (error) console.error('[supabase] delete:', error) })
+      .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to delete task.') } })
   }
 
   const toggleStar = id => {
     const task = tasks.find(t => t.id === id)
     if (!task) return
+    const prev = tasks
     const newVal = !task.starred
     setTasks(p => p.map(t => t.id === id ? { ...t, starred: newVal } : t))
     supabase.from('tasks').update({ starred: newVal }).eq('id', id)
-      .then(({ error }) => { if (error) console.error('[supabase] star:', error) })
+      .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to update star.') } })
   }
 
   const startClearArchive = (catId = null) => {
@@ -284,9 +323,10 @@ export default function App() {
   const startEdit  = (id, cur) => { setEditingId(id); setEditText(cur) }
   const saveEdit   = id => {
     if (editText.trim()) {
+      const prev = tasks
       setTasks(p => p.map(t => t.id === id ? { ...t, text: editText.trim() } : t))
       supabase.from('tasks').update({ text: editText.trim() }).eq('id', id)
-        .then(({ error }) => { if (error) console.error('[supabase] edit:', error) })
+        .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to save edit.') } })
     }
     setEditingId(null)
   }
@@ -298,26 +338,33 @@ export default function App() {
     const si = tasks.findIndex(t => t.id === a.id)
     const oi = tasks.findIndex(t => t.id === over.id)
     if (si === -1 || oi === -1) return
+    const prev = tasks
     const next = [...tasks]
     const [moved] = next.splice(si, 1)
     next.splice(oi, 0, moved)
     setTasks(next)
-    next
-      .filter(t => t.category === active && !t.archived)
-      .forEach((t, i) => supabase.from('tasks').update({ sort_order: i }).eq('id', t.id))
+    Promise.all(
+      next
+        .filter(t => t.category === active && !t.archived)
+        .map((t, i) => supabase.from('tasks').update({ sort_order: i }).eq('id', t.id))
+    ).then(results => {
+      if (results.some(r => r.error)) { setTasks(prev); showToast('Failed to save order.') }
+    })
   }
 
   const createCat = ({ name, iconName, color, light, dark }) => {
     if (categories.length >= MAX_LISTS) return null
     const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now()
     const newCat = { id, name, iconName, color, light, dark, custom: true }
+    const prevCats = categories
     setCategories(p => [...p, newCat])
     supabase.from('categories').insert({ ...catToDb(newCat, categories.length), user_id: user.id })
-      .then(({ error }) => { if (error) console.error('[supabase] create cat:', error) })
+      .then(({ error }) => { if (error) { setCategories(prevCats); showToast('Failed to create list.') } })
     return id
   }
 
   const updateCategory = (id, updates) => {
+    const prevCats = categories
     setCategories(p => p.map(c => c.id === id ? { ...c, ...updates } : c))
     const dbUp = {}
     if (updates.name     !== undefined) dbUp.name      = updates.name
@@ -326,15 +373,17 @@ export default function App() {
     if (updates.light    !== undefined) dbUp.light     = updates.light
     if (updates.dark     !== undefined) dbUp.dark      = updates.dark
     supabase.from('categories').update(dbUp).eq('id', id)
-      .then(({ error }) => { if (error) console.error('[supabase] update cat:', error) })
+      .then(({ error }) => { if (error) { setCategories(prevCats); showToast('Failed to update list.') } })
   }
 
   const deleteCategory = id => {
+    const prevCats = categories
+    const prevTasks = tasks
     setCategories(p => p.filter(c => c.id !== id))
     setTasks(p => p.filter(t => t.category !== id))
     if (active === id) setActive('general')
     supabase.from('categories').delete().eq('id', id)
-      .then(({ error }) => { if (error) console.error('[supabase] delete cat:', error) })
+      .then(({ error }) => { if (error) { setCategories(prevCats); setTasks(prevTasks); showToast('Failed to delete list.') } })
     supabase.from('tasks').delete().eq('category', id)
       .then(({ error }) => { if (error) console.error('[supabase] delete cat tasks:', error) })
   }
@@ -795,6 +844,15 @@ export default function App() {
           )}
         </div>
       </main>
+
+      {/* ════════ TOAST ════════ */}
+      {toast && (
+        <div className="fixed bottom-24 md:bottom-5 left-4 right-4 md:left-auto md:right-5 md:w-80 z-50 view-enter">
+          <div className="bg-[#3D4A3E] text-white text-[13px] font-medium px-4 py-3 rounded-xl shadow-lg">
+            {toast.msg}
+          </div>
+        </div>
+      )}
 
       {/* ════════ MOBILE BOTTOM NAV ════════ */}
       <nav
