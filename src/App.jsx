@@ -146,6 +146,7 @@ export default function App() {
   const [searchOpen, setSearchOpen]   = useState(false)
   const [dragActiveId, setDragActiveId] = useState(null)
   const [mobileAddOpen, setMobileAddOpen] = useState(false)
+  const [kbOffset, setKbOffset]           = useState(0)
   const [clearingIds, setClearingIds] = useState(new Set())
   const clearingOrderMap              = useRef(new Map())
   const inputRef = useRef()
@@ -207,6 +208,17 @@ export default function App() {
       .subscribe()
     return () => supabase.removeChannel(channel)
   }, [user])
+
+  useEffect(() => {
+    if (!mobileAddOpen) { setKbOffset(0); return }
+    const update = () => {
+      const vv = window.visualViewport
+      setKbOffset(vv ? Math.max(0, window.innerHeight - vv.height) : 0)
+    }
+    window.visualViewport?.addEventListener('resize', update)
+    update()
+    return () => { window.visualViewport?.removeEventListener('resize', update); setKbOffset(0) }
+  }, [mobileAddOpen])
 
   useEffect(() => {
     if (!user) return
@@ -1014,8 +1026,11 @@ export default function App() {
       {mobileAddOpen && cat && (
         <div className="md:hidden fixed inset-0 z-40" onClick={() => { setMobileAddOpen(false); setText('') }}>
           <div
-            className="absolute inset-x-0 bg-white border-t border-[#E0EAE0] px-4 pt-4 pb-3 shadow-2xl sheet-up"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}
+            className="absolute inset-x-0 bg-white border-t border-[#E0EAE0] px-4 pt-4 shadow-2xl sheet-up"
+            style={{
+              bottom: kbOffset,
+              paddingBottom: kbOffset > 0 ? '16px' : 'calc(env(safe-area-inset-bottom) + 16px)',
+            }}
             onClick={e => e.stopPropagation()}
           >
             <form onSubmit={e => { add(e); if (text.trim()) setMobileAddOpen(false) }}>
