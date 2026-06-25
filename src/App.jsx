@@ -1284,9 +1284,9 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
         {/* Complete circle */}
         {!selectMode && (
-          <button onClick={handleComplete} className="shrink-0 -m-1 p-1 rounded-full transition-all active:scale-90 group/check">
+          <button onClick={handleComplete} className="shrink-0 -m-2 p-2 md:-m-1 md:p-1 rounded-full transition-all active:scale-90 group/check">
             <div
-              className={`w-[20px] h-[20px] rounded-full border-2 transition-all group-hover/check:scale-110 ${completing ? 'scale-125' : ''}`}
+              className={`w-[22px] h-[22px] md:w-[20px] md:h-[20px] rounded-full border-2 transition-all group-hover/check:scale-110 ${completing ? 'scale-125' : ''}`}
               style={{ borderColor: completing ? cat.color : '#C0D0BF', backgroundColor: completing ? cat.color + '33' : 'transparent' }}
               onMouseEnter={e => { if (!completing) { e.currentTarget.style.borderColor = cat.color; e.currentTarget.style.backgroundColor = cat.color + '22' } }}
               onMouseLeave={e => { if (!completing) { e.currentTarget.style.borderColor = '#C0D0BF'; e.currentTarget.style.backgroundColor = 'transparent' } }}
@@ -1324,24 +1324,24 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
             {/* ── Mobile: star (collapsed) or 3 actions (expanded) ── */}
             {!actionsOpen ? (
-              <button onClick={() => onToggleStar(task.id)} className={`md:hidden w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
-                <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
+              <button onClick={() => onToggleStar(task.id)} className={`md:hidden w-11 h-11 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
+                <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={16} fill={task.starred ? 'currentColor' : 'none'} /></span>
               </button>
             ) : (
-              <div className="md:hidden flex items-center gap-0.5 actions-expand">
-                <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
-                  <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
+              <div className="md:hidden flex items-center gap-0 actions-expand">
+                <button onClick={() => onToggleStar(task.id)} className={`w-11 h-11 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
+                  <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={16} fill={task.starred ? 'currentColor' : 'none'} /></span>
                 </button>
                 {!overlay && (
-                  <button onClick={() => { setSubtasksOpen(true); setAddingSubtask(true); setActionsOpen(false) }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] active:text-[#7C9A7E] transition-all">
-                    <ListPlus size={14} />
+                  <button onClick={() => { setSubtasksOpen(true); setAddingSubtask(true); setActionsOpen(false) }} className="w-11 h-11 flex items-center justify-center rounded-lg text-[#C0D0BF] active:text-[#7C9A7E] transition-all">
+                    <ListPlus size={16} />
                   </button>
                 )}
-                <button onClick={() => { onStartEdit(task.id, task.text); setActionsOpen(false) }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] active:text-[#7C9A7E] transition-all">
-                  <Pencil size={14} />
+                <button onClick={() => { onStartEdit(task.id, task.text); setActionsOpen(false) }} className="w-11 h-11 flex items-center justify-center rounded-lg text-[#C0D0BF] active:text-[#7C9A7E] transition-all">
+                  <Pencil size={16} />
                 </button>
-                <button onClick={() => { setConfirmDelete(true); setActionsOpen(false) }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] active:text-rose-400 transition-all">
-                  <X size={16} />
+                <button onClick={() => { setConfirmDelete(true); setActionsOpen(false) }} className="w-11 h-11 flex items-center justify-center rounded-lg text-[#C8BEB4] active:text-rose-400 transition-all">
+                  <Trash2 size={16} />
                 </button>
               </div>
             )}
@@ -1350,7 +1350,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
             {!overlay && (
               <button
                 onClick={() => setActionsOpen(p => !p)}
-                className={`md:hidden w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${actionsOpen ? 'text-[#7C9A7E]' : 'text-[#C0D0BF]'}`}
+                className={`md:hidden w-11 h-11 flex items-center justify-center rounded-lg transition-colors ${actionsOpen ? 'text-[#7C9A7E]' : 'text-[#C0D0BF]'}`}
               >
                 <MoreHorizontal size={16} />
               </button>
@@ -1370,7 +1370,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 <Pencil size={14} />
               </button>
               <button onClick={() => setConfirmDelete(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
-                <X size={16} />
+                <Trash2 size={15} />
               </button>
             </div>
           </div>
@@ -1388,12 +1388,12 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
           {subtasks.map((s, i) => (
             <div
               key={s.id}
-              className={`flex items-center gap-2 group/sub py-1 ${removingSubIds.has(s.id) ? 'subtask-row-out' : 'subtask-row-in'}`}
+              className={`flex items-center gap-2.5 group/sub py-2 ${removingSubIds.has(s.id) ? 'subtask-row-out' : 'subtask-row-in'}`}
               style={{ animationDelay: removingSubIds.has(s.id) ? '0ms' : `${Math.min(i, 8) * 35}ms` }}
             >
-              <button onClick={() => onToggleSubtask(task.id, s.id)} className="shrink-0 active:scale-90 transition-transform">
-                <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all" style={{ borderColor: s.done ? cat.color : '#C0D0BF', backgroundColor: s.done ? cat.color : 'transparent' }}>
-                  {s.done && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+              <button onClick={() => onToggleSubtask(task.id, s.id)} className="shrink-0 -m-1.5 p-1.5 md:-m-1 md:p-1 active:scale-90 transition-transform" style={{ touchAction: 'manipulation' }}>
+                <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all" style={{ borderColor: s.done ? cat.color : '#C0D0BF', backgroundColor: s.done ? cat.color : 'transparent' }}>
+                  {s.done && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                 </div>
               </button>
               {editingSubId === s.id ? (
@@ -1406,40 +1406,42 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                     if (e.key === 'Escape') setEditingSubId(null)
                   }}
                   onBlur={() => { onEditSubtask(task.id, s.id, editSubText); setEditingSubId(null) }}
-                  className="flex-1 text-[13px] text-[#3D4A3E] outline-none bg-transparent border-b pb-px"
-                  style={{ borderColor: cat.color }}
+                  className="flex-1 text-[#3D4A3E] outline-none bg-transparent border-b pb-px"
+                  style={{ borderColor: cat.color, fontSize: 16 }}
                 />
               ) : (
                 <span
                   onDoubleClick={() => { setEditingSubId(s.id); setEditSubText(s.text) }}
-                  className={`flex-1 text-[13px] leading-snug cursor-text ${s.done ? 'line-through text-[#9BAA9C]' : 'text-[#3D4A3E]'}`}
+                  className={`flex-1 leading-snug cursor-text ${s.done ? 'line-through text-[#9BAA9C]' : 'text-[#3D4A3E]'}`}
+                  style={{ fontSize: 14 }}
                 >{s.text}</span>
               )}
-              <button onClick={() => handleRemoveSubtask(s.id)} className="opacity-0 group-hover/sub:opacity-100 w-7 h-7 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 transition-all">
-                <X size={12} />
+              <button onClick={() => handleRemoveSubtask(s.id)} className="opacity-0 group-hover/sub:opacity-100 w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:text-rose-400 transition-all">
+                <X size={14} />
               </button>
             </div>
           ))}
           {addingSubtask ? (
-            <form onSubmit={handleAddSubtask} className="flex items-center gap-2 py-1">
-              <div className="w-4 h-4 rounded-full border-2 border-[#D0DDD0] shrink-0" />
+            <form onSubmit={handleAddSubtask} className="flex items-center gap-2.5 py-2">
+              <div className="w-5 h-5 rounded-full border-2 border-[#D0DDD0] shrink-0" />
               <input
                 ref={subtaskInputRef} autoFocus
                 value={newSubtaskText} onChange={e => setNewSubtaskText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape') { setAddingSubtask(false); setNewSubtaskText('') } }}
                 onBlur={() => { if (!newSubtaskText.trim()) { if (!task.subtasks?.length) closeSubtasks(); else setAddingSubtask(false) } }}
                 placeholder="Add subtask…"
-                className="flex-1 text-[13px] text-[#3D4A3E] placeholder-[#C0CCC0] outline-none bg-transparent"
+                className="flex-1 text-[#3D4A3E] placeholder-[#C0CCC0] outline-none bg-transparent"
+                style={{ fontSize: 16 }}
               />
               {newSubtaskText.trim() && (
                 <button type="submit" className="text-[11px] font-semibold px-2.5 py-1 rounded-lg text-white shrink-0" style={{ backgroundColor: cat.color }}>Add</button>
               )}
             </form>
-          ) : (
-            <button onClick={() => setAddingSubtask(true)} className="flex items-center gap-1.5 text-[12px] text-[#B5C4B6] hover:text-[#7C9A7E] py-1 transition-colors">
-              <Plus size={12} />Add subtask
+          ) : subtasks.length > 0 ? (
+            <button onClick={() => setAddingSubtask(true)} className="flex items-center gap-1.5 text-[#B5C4B6] hover:text-[#7C9A7E] py-2 transition-colors" style={{ fontSize: 13 }}>
+              <Plus size={13} />Add subtask
             </button>
-          )}
+          ) : null}
         </div>
       )}
     </>
@@ -1449,23 +1451,40 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 // ── Archive Row ────────────────────────────────────────────────────────────
 
 function ArchiveRow({ task, cat, onRestore, onDelete, clearing = false, clearingIndex = 0 }) {
+  const subtasks = task.subtasks ?? []
   return (
     <div
-      className={`flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border border-[#EAEAE8] shadow-sm ${clearing ? 'task-deleting' : ''}`}
+      className={`px-3.5 py-3 rounded-xl bg-white border border-[#EAEAE8] shadow-sm ${clearing ? 'task-deleting' : ''}`}
       style={clearing ? { animationDelay: `${clearingIndex * 35}ms` } : undefined}
     >
-      <div className="shrink-0 w-[20px] h-[20px] rounded-full flex items-center justify-center" style={{ backgroundColor: cat.color }}>
-        <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
+      <div className="flex items-center gap-2.5">
+        <div className="shrink-0 w-[20px] h-[20px] rounded-full flex items-center justify-center" style={{ backgroundColor: cat.color }}>
+          <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <span className="flex-1 leading-snug line-through text-[#9BAA9C] select-none" style={{ fontSize: 14 }}>{task.text}</span>
+        <button onClick={() => onRestore(task.id)} className="text-[12px] text-[#9BAA9C] hover:text-[#5A7A5C] px-3 h-9 rounded-lg hover:bg-[#EEF3EC] transition-all font-medium shrink-0">
+          Restore
+        </button>
+        <button onClick={() => onDelete(task.id)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all shrink-0">
+          <Trash2 size={15} />
+        </button>
       </div>
-      <span className="flex-1 leading-snug line-through text-[#9BAA9C] select-none" style={{ fontSize: 14 }}>{task.text}</span>
-      <button onClick={() => onRestore(task.id)} className="text-[12px] text-[#9BAA9C] hover:text-[#5A7A5C] px-3 h-9 rounded-lg hover:bg-[#EEF3EC] transition-all font-medium shrink-0">
-        Restore
-      </button>
-      <button onClick={() => onDelete(task.id)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all shrink-0">
-        <X size={16} />
-      </button>
+      {subtasks.length > 0 && (
+        <div className="ml-[28px] mt-1.5 pl-3 border-l-2 space-y-1" style={{ borderColor: cat.color + '55' }}>
+          {subtasks.map(s => (
+            <div key={s.id} className="flex items-center gap-2 py-0.5">
+              <div className="w-3.5 h-3.5 rounded-full shrink-0 flex items-center justify-center" style={{ backgroundColor: cat.color }}>
+                <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-[12px] line-through text-[#B5C4B6] leading-snug">{s.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -1522,7 +1541,7 @@ function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, 
               <Pencil size={14} />
             </button>
             <button onClick={() => onDelete(task.id)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
-              <X size={16} />
+              <Trash2 size={15} />
             </button>
           </div>
         )}
