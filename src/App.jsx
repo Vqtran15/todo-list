@@ -1024,7 +1024,7 @@ export default function App() {
         <button
           onClick={() => setMobileAddOpen(true)}
           className="md:hidden fixed z-20 flex items-center justify-center w-14 h-14 rounded-full shadow-lg active:scale-90 transition-transform"
-          style={{ backgroundColor: cat.color, bottom: 'calc(env(safe-area-inset-bottom) + 104px)', right: '20px' }}
+          style={{ backgroundColor: cat.color, bottom: 'calc(env(safe-area-inset-bottom) + 120px)', right: '20px' }}
         >
           <Plus size={24} className="text-white" />
         </button>
@@ -1089,7 +1089,7 @@ export default function App() {
       {/* ════════ MOBILE BOTTOM NAV ════════ */}
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 bg-[#ECF0EA] border-t border-[#D5E2D4] z-10 flex"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', paddingTop: '8px', paddingRight: 'env(safe-area-inset-right)' }}
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)', paddingTop: '14px', paddingRight: 'env(safe-area-inset-right)' }}
       >
         <div className="flex overflow-x-auto no-scrollbar flex-1">
           {allNavItems.map(c => {
