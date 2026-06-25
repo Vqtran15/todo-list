@@ -1033,6 +1033,10 @@ export default function App() {
       {/* ════════ MOBILE ADD SHEET ════════ */}
       {mobileAddOpen && cat && (
         <div className="md:hidden fixed inset-0 z-40" onClick={() => { setMobileAddOpen(false); setText('') }}>
+          {/* White fill to cover the iOS keyboard toolbar gap */}
+          {kbOffset > 0 && (
+            <div className="absolute inset-x-0 bottom-0 bg-white" style={{ height: kbOffset + 1 }} />
+          )}
           <div
             className="absolute inset-x-0 bg-white rounded-t-2xl border-t border-[#E0EAE0] shadow-2xl sheet-up"
             style={{
