@@ -209,11 +209,19 @@ export default function App() {
     return () => supabase.removeChannel(channel)
   }, [user])
 
+  const prevKbOffset = useRef(0)
   useEffect(() => {
-    if (!mobileAddOpen) { setKbOffset(0); return }
+    if (!mobileAddOpen) { setKbOffset(0); prevKbOffset.current = 0; return }
     const update = () => {
       const vv = window.visualViewport
-      setKbOffset(vv ? Math.max(0, window.innerHeight - vv.height) : 0)
+      const next = vv ? Math.max(0, window.innerHeight - vv.height) : 0
+      if (prevKbOffset.current > 0 && next === 0) {
+        // Keyboard dismissed without submitting — close the sheet
+        setMobileAddOpen(false)
+        setText('')
+      }
+      prevKbOffset.current = next
+      setKbOffset(next)
     }
     window.visualViewport?.addEventListener('resize', update)
     update()
@@ -1026,22 +1034,39 @@ export default function App() {
       {mobileAddOpen && cat && (
         <div className="md:hidden fixed inset-0 z-40" onClick={() => { setMobileAddOpen(false); setText('') }}>
           <div
-            className="absolute inset-x-0 bg-white border-t border-[#E0EAE0] px-4 pt-4 shadow-2xl sheet-up"
+            className="absolute inset-x-0 bg-white rounded-t-2xl shadow-2xl sheet-up overflow-hidden"
             style={{
               bottom: kbOffset,
-              paddingBottom: kbOffset > 0 ? '16px' : 'calc(env(safe-area-inset-bottom) + 16px)',
+              paddingBottom: kbOffset > 0 ? '20px' : 'calc(env(safe-area-inset-bottom) + 20px)',
+              borderTop: `4px solid ${cat.color}`,
             }}
             onClick={e => e.stopPropagation()}
           >
-            <form onSubmit={e => { add(e); if (text.trim()) setMobileAddOpen(false) }}>
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: cat.color + '44' }} />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center gap-2.5 px-5 pt-2 pb-4">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: cat.light }}>
+                <CatIcon cat={cat} size={16} style={{ color: cat.color }} />
+              </div>
+              <p className="text-[15px] font-semibold" style={{ color: cat.dark }}>Add to {cat.name}</p>
+            </div>
+
+            {/* Input */}
+            <form onSubmit={e => { add(e); if (text.trim()) setMobileAddOpen(false) }} className="px-4">
               <input
                 autoFocus
                 value={text}
                 onChange={e => setText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape') { setText(''); setMobileAddOpen(false) } }}
-                placeholder={`New task in ${cat.name}…`}
-                className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none"
-                style={{ borderColor: cat.color + '99', backgroundColor: cat.light || '#F8FAF8', fontSize: 16 }}
+                placeholder="New task…"
+                className="w-full px-4 py-3.5 rounded-xl border-2 text-[#3D4A3E] placeholder-[#BFC9C0] outline-none transition-colors"
+                style={{ borderColor: cat.color + '44', backgroundColor: cat.light || '#F8FAF8', fontSize: 16 }}
+                onFocus={e => (e.target.style.borderColor = cat.color + 'BB')}
+                onBlur={e => (e.target.style.borderColor = cat.color + '44')}
               />
             </form>
           </div>
