@@ -75,11 +75,6 @@ const DEFAULT_CATEGORIES = [
   { id: 'projects',  name: 'Projects',  iconName: 'folder-kanban',   color: '#7A9BB5', light: '#EAF0F6', dark: '#4A6B85', custom: false },
 ]
 
-const ARCHIVE_CAT = {
-  id: 'archive', name: 'Archive', iconName: 'archive',
-  color: '#9BAA9C', light: '#F0F2EE', dark: '#5A6B5C',
-}
-
 const STARRED_CAT = {
   id: 'starred', name: 'Starred', iconName: 'star',
   color: '#C4A93A', light: '#FBF6E3', dark: '#8A7020',
@@ -158,8 +153,18 @@ export default function App() {
     try { return JSON.parse(localStorage.getItem('todo-sort-by')) || {} } catch { return {} }
   })
   const [selectedIds, setSelectedIds] = useState(new Set())
-  const [selectMode, setSelectMode]   = useState(false)
-  const [movePicker, setMovePicker]   = useState(false)
+  const [selectMode, setSelectMode]       = useState(false)
+  const [selectBarClosing, setSelectBarClosing] = useState(false)
+  const [movePicker, setMovePicker]       = useState(false)
+  const [completedOpen, setCompletedOpen]       = useState(false)
+  const [completedClosing, setCompletedClosing] = useState(false)
+
+  const closeCompleted = () => {
+    setCompletedClosing(true)
+    setTimeout(() => { setCompletedOpen(false); setCompletedClosing(false) }, 180)
+  }
+
+  useEffect(() => { setCompletedOpen(false); setCompletedClosing(false) }, [active])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -275,12 +280,10 @@ export default function App() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  const isArchive    = active === 'archive'
   const isSettings   = active === 'settings'
   const isStarred    = active === 'starred'
   const isSearching  = search.trim().length > 0 && !isSettings
   const cat          = categories.find(c => c.id === active)
-  const archiveCount = tasks.filter(t => t.archived).length
   const starredTasks = tasks.filter(t => t.starred && !t.archived)
   const activeTasks  = tasks.filter(t => t.category === active && !t.archived)
   const currentSort  = sortBy[active] || 'manual'
@@ -298,7 +301,7 @@ export default function App() {
 
   const add = e => {
     e.preventDefault()
-    if (!text.trim() || isArchive) return
+    if (!text.trim()) return
     const newTask = { id: Date.now(), text: text.trim(), category: active, archived: false, starred: false, subtasks: [] }
     const sortPos = -(tasks.filter(t => t.category === active && !t.archived).length + 1)
     setTasks(p => [newTask, ...p])
@@ -386,7 +389,10 @@ export default function App() {
       .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to update subtask.') } })
   }
 
-  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()) }
+  const exitSelectMode = () => {
+    setSelectBarClosing(true)
+    setTimeout(() => { setSelectMode(false); setSelectedIds(new Set()); setSelectBarClosing(false) }, 220)
+  }
   const toggleSelect = id => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   const bulkArchive = ids => {
@@ -525,6 +531,7 @@ export default function App() {
     setMobileAddOpen(false)
     setText('')
     setSelectMode(false)
+    setSelectBarClosing(false)
     setSelectedIds(new Set())
     setViewKey(k => k + 1)
   }
@@ -556,7 +563,7 @@ export default function App() {
         <nav className="flex-1 px-2.5 space-y-0.5 overflow-y-auto pb-2">
           {categories.map(c => {
             const count = tasks.filter(t => t.category === c.id && !t.archived).length
-            const on    = active === c.id && !isArchive && !isSettings && !isSearching
+            const on    = active === c.id && !isSettings && !isSearching
             return (
               <button
                 key={c.id}
@@ -694,8 +701,6 @@ export default function App() {
               onReorder={reorderCategories}
               onRestoreTask={restore}
               onDeleteTask={remove}
-              onClearArchive={() => startClearArchive()}
-              onClearCatArchive={catId => startClearArchive(catId)}
               user={user}
               onSignOut={() => supabase.auth.signOut()}
               clearingIds={clearingIds}
@@ -758,49 +763,6 @@ export default function App() {
             </>
           )}
 
-          {/* ── Archive ── */}
-          {!isSearching && isArchive && (
-            <>
-              <div className="flex items-center gap-2.5 mb-6">
-                <Archive size={22} style={{ color: '#9BAA9C' }} strokeWidth={1.75} />
-                <div>
-                  <h2 className="text-xl font-semibold text-[#5A6B5C]">Archive</h2>
-                  <p className="text-xs text-[#9BAA9C] mt-0.5">{archiveCount} completed</p>
-                </div>
-                {archiveCount > 0 && (
-                  <button onClick={() => startClearArchive()} className="ml-auto text-xs text-[#CABFB5] hover:text-rose-400 py-2 px-1 transition-colors">
-                    Clear all
-                  </button>
-                )}
-              </div>
-              {archiveCount === 0
-                ? <div className="text-center py-14"><p className="text-4xl mb-3 text-[#E0EAE0]">○</p><p className="text-sm text-[#B5C4B6]">Nothing archived yet.</p></div>
-                : categories.map(c => {
-                    const done = tasks.filter(t => t.archived && t.category === c.id)
-                    if (!done.length) return null
-                    return (
-                      <div key={c.id} className="mb-5">
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <CatIcon cat={c} size={13} style={{ color: c.color }} />
-                          <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: c.color }}>{c.name}</span>
-                        </div>
-                        <div className="space-y-2">
-                          {done.map(t => (
-                            <ArchiveRow
-                              key={t.id} task={t} cat={c}
-                              onRestore={restore} onDelete={remove}
-                              clearing={clearingIds.has(t.id)}
-                              clearingIndex={clearingOrderMap.current.get(t.id) ?? 0}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  })
-              }
-            </>
-          )}
-
           {/* ── Starred View ── */}
           {!isSearching && isStarred && (
             <>
@@ -847,7 +809,7 @@ export default function App() {
           )}
 
           {/* ── Category View ── */}
-          {!isSearching && !isArchive && !isStarred && cat && (
+          {!isSearching && !isStarred && cat && (
             <>
               <div className="hidden md:flex items-center gap-3 mb-5">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: cat.light }}>
@@ -912,7 +874,7 @@ export default function App() {
                   </div>
                   <p className="text-sm text-[#B5C4B6]">
                     {tasks.filter(t => t.category === active && t.archived).length > 0
-                      ? 'All done! Check the Archive.'
+                      ? 'All done! Scroll down to see completed tasks.'
                       : <><span className="md:hidden">No tasks yet — tap + to add one!</span><span className="hidden md:inline">No tasks yet — add one above!</span></>}
                   </p>
                 </div>
@@ -974,27 +936,69 @@ export default function App() {
                   ))}
                 </div>
               )}
+
+              {/* ── Completed section ── */}
+              {(() => {
+                const catArchived = tasks.filter(t => t.archived && t.category === active)
+                if (!catArchived.length) return null
+                return (
+                  <div className="mt-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex-1 h-px bg-[#E8EEE7]" />
+                      <button
+                        onClick={() => { if (completedOpen || completedClosing) closeCompleted(); else setCompletedOpen(true) }}
+                        className="flex items-center gap-1.5 text-[11px] font-semibold text-[#9BAA9C] hover:text-[#637265] transition-colors py-1 px-2 rounded-lg hover:bg-[#F0F4EF]"
+                      >
+                        <ChevronDown size={12} style={{ transform: completedOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                        Completed ({catArchived.length})
+                      </button>
+                      {completedOpen && (
+                        <button
+                          onClick={() => startClearArchive(active)}
+                          className="text-[11px] text-[#CABFB5] hover:text-rose-400 px-2 py-1 transition-colors"
+                        >
+                          Clear
+                        </button>
+                      )}
+                      <div className="flex-1 h-px bg-[#E8EEE7]" />
+                    </div>
+                    {(completedOpen || completedClosing) && (
+                      <div className={`space-y-2 ${completedClosing ? 'completed-section-out' : 'completed-section-in'}`}>
+                        {catArchived.map(t => (
+                          <ArchiveRow
+                            key={t.id} task={t} cat={cat}
+                            onRestore={restore} onDelete={remove}
+                            clearing={clearingIds.has(t.id)}
+                            clearingIndex={clearingOrderMap.current.get(t.id) ?? 0}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </>
           )}
         </div>
       </main>
 
       {/* ════════ BULK ACTION BAR ════════ */}
-      {selectMode && cat && (
-        <div className="fixed bottom-0 inset-x-0 z-20 bg-white border-t border-[#E0EAE0] shadow-lg md:left-60"
-          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
-          <div className="flex items-center gap-2 px-4 pt-3.5 max-w-xl">
-            <span className="text-[13px] font-semibold text-[#3D4A3E] flex-1">
+      {(selectMode || selectBarClosing) && cat && (
+        <div className={`fixed bottom-0 inset-x-0 z-30 bg-white border-t border-[#E0EAE0] shadow-lg md:left-60 bulk-bar ${selectBarClosing ? 'bulk-bar-out' : 'bulk-bar-in'}`}>
+          <div className="flex flex-col items-center gap-2 px-4 pt-3 max-w-xl mx-auto w-full">
+            <span className="text-[13px] font-semibold text-[#3D4A3E]">
               {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Tap tasks to select'}
             </span>
-            {selectedIds.size > 0 && (
-              <>
-                <button onClick={() => bulkArchive(selectedIds)} className="px-3 py-2 rounded-xl text-[12px] font-semibold text-white shadow-sm" style={{ backgroundColor: cat.color }}>Complete</button>
-                <button onClick={() => setMovePicker(true)} className="px-3 py-2 rounded-xl text-[12px] font-semibold bg-[#EEF3EC] text-[#3D4A3E]">Move</button>
-                <button onClick={() => bulkRemove(selectedIds)} className="px-3 py-2 rounded-xl text-[12px] font-semibold bg-rose-50 text-rose-500 flex items-center gap-1"><Trash2 size={12} />Delete</button>
-              </>
-            )}
-            <button onClick={exitSelectMode} className="px-3 py-2 text-[12px] font-medium text-[#9BAA9C]">Cancel</button>
+            <div className="flex items-center justify-center gap-2 w-full">
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-2 bulk-actions-in">
+                  <button onClick={() => bulkArchive(selectedIds)} className="px-3 py-2 rounded-xl text-[12px] font-semibold text-white shadow-sm" style={{ backgroundColor: cat.color }}>Complete</button>
+                  <button onClick={() => setMovePicker(true)} className="px-3 py-2 rounded-xl text-[12px] font-semibold bg-[#EEF3EC] text-[#3D4A3E]">Move</button>
+                  <button onClick={() => bulkRemove(selectedIds)} className="px-3 py-2 rounded-xl text-[12px] font-semibold bg-rose-50 text-rose-500 flex items-center gap-1"><Trash2 size={12} />Delete</button>
+                </div>
+              )}
+              <button onClick={exitSelectMode} className="px-3 py-2 text-[12px] font-medium text-[#9BAA9C]">Cancel</button>
+            </div>
           </div>
         </div>
       )}
@@ -1621,7 +1625,7 @@ function SortableCatCard({ id, className = '', children }) {
 
 // ── Settings Page ──────────────────────────────────────────────────────────
 
-function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, onClearArchive, onClearCatArchive, user, onSignOut, clearingIds, clearingOrderMap }) {
+function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, user, onSignOut, clearingIds, clearingOrderMap }) {
   const [editingId, setEditingId]     = useState(null)
   const [editName, setEditName]       = useState('')
   const [editColor, setEditColor]     = useState(PALETTE[0])
@@ -1869,9 +1873,6 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
           </div>
         )}
 
-      {/* ── Archive section ── */}
-      <ArchiveSettings tasks={tasks} categories={categories} onRestore={onRestoreTask} onDelete={onDeleteTask} onClearAll={onClearArchive} onClearCat={onClearCatArchive} clearingIds={clearingIds} clearingOrderMap={clearingOrderMap} />
-
       {/* Account section */}
       <div className="mt-8 mb-2">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-[#9BAA9C] mb-3">Account</p>
@@ -1892,147 +1893,6 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
             </button>
           </div>
         </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Archive Settings section ───────────────────────────────────────────────
-
-function ArchiveSettings({ tasks, categories, onRestore, onDelete, onClearAll, onClearCat, clearingIds = new Set(), clearingOrderMap = { current: new Map() } }) {
-  const [confirmClear, setConfirmClear] = useState(false)
-  const [expanded, setExpanded]         = useState(new Set())
-  const totalArchived = tasks.filter(t => t.archived).length
-  const catsWithArchive = categories
-    .map(c => ({ ...c, archivedTasks: tasks.filter(t => t.archived && t.category === c.id) }))
-    .filter(c => c.archivedTasks.length > 0)
-
-  const toggle = id => setExpanded(prev => {
-    const next = new Set(prev)
-    next.has(id) ? next.delete(id) : next.add(id)
-    return next
-  })
-
-  return (
-    <div className="mt-8">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#9BAA9C] mb-3">Archive</p>
-
-      <div className="bg-white rounded-2xl border border-[#E0EAE0] shadow-sm overflow-hidden">
-        {/* Summary row */}
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[#F0F4EF]">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-[#F0F2EE]">
-            <Archive size={18} style={{ color: '#9BAA9C' }} strokeWidth={1.75} />
-          </div>
-          <div className="flex-1">
-            <p className="text-[14px] font-medium text-[#3D4A3E]">Completed Tasks</p>
-            <p className="text-[11px] text-[#9BAA9C]">{totalArchived} task{totalArchived !== 1 ? 's' : ''} archived</p>
-          </div>
-          {totalArchived > 0 && !confirmClear && (
-            <button
-              onClick={() => setConfirmClear(true)}
-              className="h-8 px-3 rounded-lg text-[12px] font-medium text-rose-400 hover:bg-rose-50 transition-all"
-            >
-              Clear all
-            </button>
-          )}
-        </div>
-
-        {/* Confirm clear all */}
-        {confirmClear && (
-          <div className="px-4 py-3.5 bg-rose-50 border-b border-rose-100">
-            <p className="text-[13px] font-semibold text-rose-700 mb-0.5">Clear entire archive?</p>
-            <p className="text-[12px] text-rose-500 mb-3">{totalArchived} completed task{totalArchived !== 1 ? 's' : ''} will be permanently deleted.</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => { onClearAll(); setConfirmClear(false) }}
-                className="flex-1 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-[13px] font-semibold transition-colors"
-              >
-                Clear all
-              </button>
-              <button
-                onClick={() => setConfirmClear(false)}
-                className="flex-1 py-2 rounded-xl bg-white border border-[#E0EAE0] text-[#9BAA9C] text-[13px] font-medium hover:bg-[#F8F6F2] transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {totalArchived === 0 && (
-          <div className="px-4 py-5 text-center">
-            <p className="text-[13px] text-[#B5C4B6]">Nothing archived yet.</p>
-          </div>
-        )}
-
-        {/* Per-category breakdown — expandable */}
-        {catsWithArchive.map((c, i) => {
-          const isExpanded = expanded.has(c.id)
-          const isLast = i === catsWithArchive.length - 1
-          return (
-            <div key={c.id} className={!isLast || isExpanded ? 'border-b border-[#F4F6F3]' : ''}>
-              {/* Category header row */}
-              <button
-                onClick={() => toggle(c.id)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#FAFAF9] transition-colors text-left"
-              >
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: c.light }}>
-                  <CatIcon cat={c} size={14} style={{ color: c.color }} strokeWidth={1.75} />
-                </div>
-                <span className="flex-1 text-[13px] text-[#5A6B5C]">{c.name}</span>
-                <span className="text-[12px] text-[#9BAA9C]">{c.archivedTasks.length} completed</span>
-                <ChevronDown
-                  size={15}
-                  className="ml-1 text-[#C0CCC0] transition-transform duration-200 shrink-0"
-                  style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-                />
-              </button>
-
-              {/* Expanded task list */}
-              {isExpanded && (
-                <div className="border-t border-[#F4F6F3] bg-[#FAFBF9]">
-                  {c.archivedTasks.map((t, ti) => {
-                    const clearing = clearingIds.has(t.id)
-                    return (
-                    <div
-                      key={t.id}
-                      className={`flex items-center gap-2.5 px-4 py-2.5 ${ti < c.archivedTasks.length - 1 ? 'border-b border-[#F4F6F3]' : ''} ${clearing ? 'task-deleting' : ''}`}
-                      style={clearing ? { animationDelay: `${(clearingOrderMap.current.get(t.id) ?? 0) * 35}ms` } : undefined}
-                    >
-                      <div className="shrink-0 w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: c.color }}>
-                        <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <span className="flex-1 text-[12px] line-through text-[#9BAA9C] leading-snug">{t.text}</span>
-                      <button
-                        onClick={() => onRestore(t.id)}
-                        className="text-[11px] text-[#9BAA9C] hover:text-[#5A7A5C] px-2 py-1 rounded-lg hover:bg-[#EEF3EC] transition-all shrink-0"
-                      >
-                        Restore
-                      </button>
-                      <button
-                        onClick={() => onDelete(t.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 hover:bg-rose-50 transition-all shrink-0"
-                      >
-                        <X size={13} />
-                      </button>
-                    </div>
-                  )})}
-
-                  <div className="px-4 py-2.5 flex justify-end border-t border-[#F0F0EE]">
-                    <button
-                      onClick={() => { onClearCat(c.id); setExpanded(prev => { const n = new Set(prev); n.delete(c.id); return n }) }}
-                      className="text-[11px] text-[#C8BEB4] hover:text-rose-400 transition-colors"
-                    >
-                      Clear all in {c.name}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
       </div>
     </div>
   )

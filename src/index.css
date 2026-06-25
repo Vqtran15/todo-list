@@ -175,6 +175,53 @@ body { margin: 0; }
   animation: actions-expand 0.16s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
+/* Bulk action bar slide-in/out */
+@keyframes bulk-bar-in {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.bulk-bar-in { animation: bulk-bar-in 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
+@keyframes bulk-bar-out {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0; }
+}
+.bulk-bar-out { animation: bulk-bar-out 0.2s cubic-bezier(0.4, 0, 0.6, 1) both; pointer-events: none; }
+
+/* Bulk action buttons appear when tasks are selected */
+@keyframes bulk-actions-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+.bulk-actions-in { animation: bulk-actions-in 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
+/* Bulk action bar — sits above mobile nav, flush on desktop */
+.bulk-bar {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 86px);
+}
+@media (min-width: 768px) {
+  .bulk-bar {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 16px);
+  }
+}
+
+/* Completed section open/close */
+@keyframes completed-section-in {
+  0%   { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.completed-section-in {
+  animation: completed-section-in 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+@keyframes completed-section-out {
+  0%   { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+.completed-section-out {
+  animation: completed-section-out 0.18s cubic-bezier(0.4, 0, 0.6, 1) both;
+  pointer-events: none;
+}
+
 /* Select mode checkbox slide-in */
 @keyframes checkbox-in {
   0%   { opacity: 0; transform: translateX(-10px) scale(0.75); }
