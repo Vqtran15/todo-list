@@ -1325,14 +1325,14 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
               </button>
             ) : (
               <div className="md:hidden flex items-center gap-0.5 actions-expand">
+                <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
+                  <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
+                </button>
                 {!overlay && (
                   <button onClick={() => { setSubtasksOpen(true); setAddingSubtask(true); setActionsOpen(false) }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] active:text-[#7C9A7E] transition-all">
                     <ListPlus size={14} />
                   </button>
                 )}
-                <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
-                  <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
-                </button>
                 <button onClick={() => { onStartEdit(task.id, task.text); setActionsOpen(false) }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] active:text-[#7C9A7E] transition-all">
                   <Pencil size={14} />
                 </button>
@@ -1354,14 +1354,14 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
             {/* ── Desktop: all 4 with hover ── */}
             <div className={`hidden md:flex items-center gap-0.5 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+              <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
+                <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
+              </button>
               {!overlay && (
                 <button onClick={() => { if ((subtasksOpen || subtasksClosing) && !newSubtaskText.trim()) { closeSubtasks() } else { setSubtasksOpen(true); setAddingSubtask(true) } }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] transition-all">
                   <ListPlus size={14} />
                 </button>
               )}
-              <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
-                <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
-              </button>
               <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
                 <Pencil size={14} />
               </button>
@@ -1423,7 +1423,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 ref={subtaskInputRef} autoFocus
                 value={newSubtaskText} onChange={e => setNewSubtaskText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape') { setAddingSubtask(false); setNewSubtaskText('') } }}
-                onBlur={() => { if (!newSubtaskText.trim()) setAddingSubtask(false) }}
+                onBlur={() => { if (!newSubtaskText.trim()) { if (!task.subtasks?.length) closeSubtasks(); else setAddingSubtask(false) } }}
                 placeholder="Add subtask…"
                 className="flex-1 text-[13px] text-[#3D4A3E] placeholder-[#C0CCC0] outline-none bg-transparent"
               />
