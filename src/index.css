@@ -116,3 +116,72 @@ body { margin: 0; }
   to   { opacity: 1; transform: translateY(0); }
 }
 .field-expand { animation: field-expand 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
+/* Mobile add sheet slide up */
+@keyframes sheet-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.sheet-up {
+  animation: sheet-up 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Subtask section open/close */
+@keyframes subtask-section-in {
+  0%   { opacity: 0; transform: translateY(-6px) scaleY(0.92); }
+  100% { opacity: 1; transform: translateY(0)    scaleY(1); }
+}
+.subtask-section-in {
+  animation: subtask-section-in 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  transform-origin: top center;
+}
+@keyframes subtask-section-out {
+  0%   { opacity: 1; transform: translateY(0)    scaleY(1); }
+  100% { opacity: 0; transform: translateY(-6px) scaleY(0.92); }
+}
+.subtask-section-out {
+  animation: subtask-section-out 0.14s cubic-bezier(0.4, 0, 0.6, 1) both;
+  transform-origin: top center;
+  pointer-events: none;
+}
+
+/* Subtask row enter */
+@keyframes subtask-row-in {
+  0%   { opacity: 0; transform: translateX(-8px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+.subtask-row-in {
+  animation: subtask-row-in 0.16s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Subtask row exit */
+@keyframes subtask-row-out {
+  0%   { opacity: 1; transform: translateX(0) scaleY(1); max-height: 48px; }
+  100% { opacity: 0; transform: translateX(10px) scaleY(0.5); max-height: 0; }
+}
+.subtask-row-out {
+  animation: subtask-row-out 0.18s cubic-bezier(0.4, 0, 0.6, 1) both;
+  transform-origin: top center;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* Select mode checkbox slide-in */
+@keyframes checkbox-in {
+  0%   { opacity: 0; transform: translateX(-10px) scale(0.75); }
+  100% { opacity: 1; transform: translateX(0)     scale(1); }
+}
+.checkbox-in {
+  animation: checkbox-in 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Check toggle pop (select/deselect) */
+@keyframes check-pop {
+  0%   { transform: scale(0.65); }
+  55%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.check-pop {
+  display: flex;
+  animation: check-pop 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}

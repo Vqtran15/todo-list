@@ -20,6 +20,7 @@ import {
   Sparkles, Bike, Baby, Pill, PawPrint, Sunrise, Wallet, Globe,
   // UI icons
   Plus, Search, Pencil, X, GripVertical, Settings, ChevronDown,
+  Square, SquareCheck, ListPlus, Trash2,
 } from 'lucide-react'
 
 // ── Icon registry ──────────────────────────────────────────────────────────
@@ -105,8 +106,8 @@ const SEED = [
 
 const catToDb  = (c, i) => ({ id: c.id, name: c.name, icon_name: c.iconName, color: c.color, light: c.light, dark: c.dark, custom: c.custom ?? false, sort_order: i })
 const dbToCat  = r => ({ id: r.id, name: r.name, iconName: r.icon_name, color: r.color, light: r.light, dark: r.dark, custom: r.custom })
-const taskToDb = (t, i) => ({ id: t.id, text: t.text, category: t.category, archived: t.archived, starred: t.starred ?? false, sort_order: i })
-const dbToTask = r => ({ id: r.id, text: r.text, category: r.category, archived: r.archived, starred: r.starred ?? false })
+const taskToDb = (t, i) => ({ id: t.id, text: t.text, category: t.category, archived: t.archived, starred: t.starred ?? false, subtasks: t.subtasks ?? [], sort_order: i })
+const dbToTask = r => ({ id: r.id, text: r.text, category: r.category, archived: r.archived, starred: r.starred ?? false, subtasks: r.subtasks ?? [] })
 
 // Read localStorage for one-time migration on first Supabase load
 function readLocalCats() {
@@ -143,8 +144,8 @@ export default function App() {
   const [editText, setEditText]     = useState('')
   const [newTaskId, setNewTaskId]   = useState(null)
   const [searchOpen, setSearchOpen]   = useState(false)
-  const [addOpen, setAddOpen]         = useState(false)
   const [dragActiveId, setDragActiveId] = useState(null)
+  const [mobileAddOpen, setMobileAddOpen] = useState(false)
   const [clearingIds, setClearingIds] = useState(new Set())
   const clearingOrderMap              = useRef(new Map())
   const inputRef = useRef()
@@ -152,6 +153,12 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true)
   const [toast, setToast]           = useState(null)
   const toastTimer                  = useRef(null)
+  const [sortBy, setSortBy]         = useState(() => {
+    try { return JSON.parse(localStorage.getItem('todo-sort-by')) || {} } catch { return {} }
+  })
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [selectMode, setSelectMode]   = useState(false)
+  const [movePicker, setMovePicker]   = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -256,6 +263,15 @@ export default function App() {
   const archiveCount = tasks.filter(t => t.archived).length
   const starredTasks = tasks.filter(t => t.starred && !t.archived)
   const activeTasks  = tasks.filter(t => t.category === active && !t.archived)
+  const currentSort  = sortBy[active] || 'manual'
+  const displayTasks = (() => {
+    const t = [...activeTasks]
+    if (currentSort === 'date-desc')  return t.sort((a, b) => b.id - a.id)
+    if (currentSort === 'date-asc')   return t.sort((a, b) => a.id - b.id)
+    if (currentSort === 'alpha-asc')  return t.sort((a, b) => a.text.localeCompare(b.text))
+    if (currentSort === 'alpha-desc') return t.sort((a, b) => b.text.localeCompare(a.text))
+    return t
+  })()
   const searchResults = isSearching
     ? tasks.filter(t => !t.archived && t.text.toLowerCase().includes(search.toLowerCase()))
     : []
@@ -263,7 +279,7 @@ export default function App() {
   const add = e => {
     e.preventDefault()
     if (!text.trim() || isArchive) return
-    const newTask = { id: Date.now(), text: text.trim(), category: active, archived: false, starred: false }
+    const newTask = { id: Date.now(), text: text.trim(), category: active, archived: false, starred: false, subtasks: [] }
     const sortPos = -(tasks.filter(t => t.category === active && !t.archived).length + 1)
     setTasks(p => [newTask, ...p])
     setNewTaskId(newTask.id)
@@ -302,6 +318,78 @@ export default function App() {
     setTasks(p => p.map(t => t.id === id ? { ...t, starred: newVal } : t))
     supabase.from('tasks').update({ starred: newVal }).eq('id', id)
       .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to update star.') } })
+  }
+
+  const updateSort = (catId, value) => {
+    const next = { ...sortBy, [catId]: value }
+    setSortBy(next)
+    localStorage.setItem('todo-sort-by', JSON.stringify(next))
+  }
+
+  const addSubtask = (taskId, text, id = Date.now()) => {
+    if (!text.trim()) return
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+    const sub = { id, text: text.trim(), done: false }
+    const prev = tasks
+    const updated = [...(task.subtasks || []), sub]
+    setTasks(p => p.map(t => t.id === taskId ? { ...t, subtasks: updated } : t))
+    supabase.from('tasks').update({ subtasks: updated }).eq('id', taskId)
+      .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to add subtask.') } })
+  }
+  const toggleSubtask = (taskId, subId) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+    const prev = tasks
+    const updated = task.subtasks.map(s => s.id === subId ? { ...s, done: !s.done } : s)
+    setTasks(p => p.map(t => t.id === taskId ? { ...t, subtasks: updated } : t))
+    supabase.from('tasks').update({ subtasks: updated }).eq('id', taskId)
+      .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to update subtask.') } })
+  }
+  const removeSubtask = (taskId, subId) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+    const prev = tasks
+    const updated = task.subtasks.filter(s => s.id !== subId)
+    setTasks(p => p.map(t => t.id === taskId ? { ...t, subtasks: updated } : t))
+    supabase.from('tasks').update({ subtasks: updated }).eq('id', taskId)
+      .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to remove subtask.') } })
+  }
+  const editSubtask = (taskId, subId, text) => {
+    if (!text.trim()) return
+    const task = tasks.find(t => t.id === taskId)
+    if (!task) return
+    const prev = tasks
+    const updated = task.subtasks.map(s => s.id === subId ? { ...s, text: text.trim() } : s)
+    setTasks(p => p.map(t => t.id === taskId ? { ...t, subtasks: updated } : t))
+    supabase.from('tasks').update({ subtasks: updated }).eq('id', taskId)
+      .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to update subtask.') } })
+  }
+
+  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()) }
+  const toggleSelect = id => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
+
+  const bulkArchive = ids => {
+    const prev = tasks
+    setTasks(p => p.map(t => ids.has(t.id) ? { ...t, archived: true } : t))
+    exitSelectMode()
+    Promise.all([...ids].map(id => supabase.from('tasks').update({ archived: true }).eq('id', id)))
+      .then(results => { if (results.some(r => r.error)) { setTasks(prev); showToast('Failed to complete some tasks.') } })
+  }
+  const bulkRemove = ids => {
+    const prev = tasks
+    setTasks(p => p.filter(t => !ids.has(t.id)))
+    exitSelectMode()
+    Promise.all([...ids].map(id => supabase.from('tasks').delete().eq('id', id)))
+      .then(results => { if (results.some(r => r.error)) { setTasks(prev); showToast('Failed to delete some tasks.') } })
+  }
+  const bulkMove = (ids, catId) => {
+    const prev = tasks
+    setTasks(p => p.map(t => ids.has(t.id) ? { ...t, category: catId } : t))
+    setMovePicker(false)
+    exitSelectMode()
+    Promise.all([...ids].map(id => supabase.from('tasks').update({ category: catId }).eq('id', id)))
+      .then(results => { if (results.some(r => r.error)) { setTasks(prev); showToast('Failed to move some tasks.') } })
   }
 
   const startClearArchive = (catId = null) => {
@@ -414,7 +502,10 @@ export default function App() {
     }
     setSearch('')
     setSearchOpen(false)
-    setAddOpen(false)
+    setMobileAddOpen(false)
+    setText('')
+    setSelectMode(false)
+    setSelectedIds(new Set())
     setViewKey(k => k + 1)
   }
 
@@ -748,44 +839,51 @@ export default function App() {
                 </div>
               </div>
 
-              {addOpen ? (
-                <form onSubmit={add} className="flex gap-2 mb-5 field-expand">
-                  <input
-                    ref={inputRef}
-                    autoFocus
-                    value={text}
-                    onChange={e => setText(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Escape') { setAddOpen(false); setText('') } }}
-                    placeholder={`Add to ${cat.name}…`}
-                    className="flex-1 px-4 py-3 rounded-xl bg-white border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm transition-all"
-                    style={{ borderColor: '#DBE8DA', fontSize: 16 }}
-                    onFocus={e => (e.target.style.borderColor = cat.color + 'BB')}
-                    onBlur={e => (e.target.style.borderColor = '#DBE8DA')}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => { setAddOpen(false); setText('') }}
-                    className="w-12 flex items-center justify-center rounded-xl bg-[#F0F2EF] text-[#9BAA9C] hover:text-[#637265] transition-all"
-                  >
-                    <X size={18} />
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-3 rounded-xl text-white font-semibold shadow-sm hover:opacity-80 active:scale-95 transition-all"
-                    style={{ backgroundColor: cat.color, fontSize: 15, minWidth: 64 }}
-                  >
-                    Add
-                  </button>
-                </form>
-              ) : (
+              <form onSubmit={add} className="mb-5 hidden md:block">
+                <input
+                  ref={inputRef}
+                  value={text}
+                  onChange={e => setText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Escape') setText('') }}
+                  placeholder={`New task in ${cat.name}…`}
+                  className="w-full px-4 py-3 rounded-xl bg-white border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm transition-all"
+                  style={{ borderColor: '#DBE8DA', fontSize: 15 }}
+                  onFocus={e => (e.target.style.borderColor = cat.color + 'BB')}
+                  onBlur={e => (e.target.style.borderColor = '#DBE8DA')}
+                />
+              </form>
+
+              {/* Sort + Select controls */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1 flex-wrap">
+                  {[
+                    { value: 'manual',     label: 'Manual' },
+                    { value: 'date-desc',  label: 'Newest' },
+                    { value: 'date-asc',   label: 'Oldest' },
+                    { value: 'alpha-asc',  label: 'A → Z' },
+                    { value: 'alpha-desc', label: 'Z → A' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => updateSort(active, opt.value)}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                        currentSort === opt.value ? 'text-white' : 'bg-[#F0F4EF] text-[#9BAA9C] hover:text-[#637265]'
+                      }`}
+                      style={currentSort === opt.value ? { backgroundColor: cat.color } : {}}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
                 <button
-                  onClick={() => setAddOpen(true)}
-                  className="w-full flex items-center gap-2.5 px-4 py-3 rounded-xl border border-dashed border-[#C8DAC7] text-[#9BAA9C] hover:text-[#7C9A7E] hover:border-[#7C9A7E88] hover:bg-[#F8FAF8] mb-5 transition-all"
+                  onClick={() => { setSelectMode(p => !p); setSelectedIds(new Set()) }}
+                  className={`text-[12px] font-semibold px-3 py-1 rounded-full transition-all shrink-0 ml-2 ${
+                    selectMode ? 'bg-[#3D4A3E] text-white' : 'text-[#9BAA9C] hover:text-[#637265]'
+                  }`}
                 >
-                  <Plus size={16} />
-                  <span style={{ fontSize: 14 }}>Add to {cat.name}…</span>
+                  {selectMode ? 'Cancel' : 'Select'}
                 </button>
-              )}
+              </div>
 
               {activeTasks.length === 0 ? (
                 <div className="text-center py-14">
@@ -794,10 +892,11 @@ export default function App() {
                   </div>
                   <p className="text-sm text-[#B5C4B6]">
                     {tasks.filter(t => t.category === active && t.archived).length > 0
-                      ? 'All done! Check the Archive.' : 'No tasks yet — add one above!'}
+                      ? 'All done! Check the Archive.'
+                      : <><span className="md:hidden">No tasks yet — tap + to add one!</span><span className="hidden md:inline">No tasks yet — add one above!</span></>}
                   </p>
                 </div>
-              ) : (
+              ) : currentSort === 'manual' ? (
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCenter}
@@ -805,45 +904,134 @@ export default function App() {
                   onDragCancel={() => setDragActiveId(null)}
                   onDragEnd={handleDragEnd}
                 >
-                  <SortableContext items={activeTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                  <SortableContext items={displayTasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
                     <div className="space-y-2">
-                      {activeTasks.map((t, i) => (
+                      {displayTasks.map((t, i) => (
                         <SortableTaskRow
                           key={t.id} task={t} cat={cat}
-                          isNew={t.id === newTaskId}
-                          staggerIndex={i}
+                          isNew={t.id === newTaskId} staggerIndex={i}
                           isEditing={editingId === t.id} editText={editText}
                           onEditChange={setEditText} onStartEdit={startEdit}
                           onSaveEdit={saveEdit} onCancelEdit={cancelEdit}
-                          onArchive={archive} onDelete={remove}
-                          onToggleStar={toggleStar}
+                          onArchive={archive} onDelete={remove} onToggleStar={toggleStar}
+                          onAddSubtask={addSubtask} onToggleSubtask={toggleSubtask} onRemoveSubtask={removeSubtask} onEditSubtask={editSubtask}
+                          selectMode={selectMode} isSelected={selectedIds.has(t.id)} onToggleSelect={toggleSelect}
                         />
                       ))}
                     </div>
                   </SortableContext>
                   <DragOverlay dropAnimation={null}>
                     {dragActiveId ? (() => {
-                      const t = activeTasks.find(t => t.id === dragActiveId)
+                      const t = displayTasks.find(t => t.id === dragActiveId)
                       return t ? (
                         <TaskRow
-                          task={t} cat={cat}
+                          task={t} cat={cat} overlay={true}
                           isEditing={false} editText=""
                           onEditChange={() => {}} onStartEdit={() => {}}
                           onSaveEdit={() => {}} onCancelEdit={() => {}}
-                          onArchive={() => {}} onDelete={() => {}}
-                          onToggleStar={() => {}}
-                          isDragging={true}
-                          dragListeners={{}} dragAttributes={{}}
+                          onArchive={() => {}} onDelete={() => {}} onToggleStar={() => {}}
+                          onAddSubtask={() => {}} onToggleSubtask={() => {}} onRemoveSubtask={() => {}} onEditSubtask={() => {}}
+                          isDragging={true} dragListeners={{}} dragAttributes={{}}
+                          selectMode={false} isSelected={false} onToggleSelect={() => {}}
                         />
                       ) : null
                     })() : null}
                   </DragOverlay>
                 </DndContext>
+              ) : (
+                <div className="space-y-2">
+                  {displayTasks.map((t, i) => (
+                    <PlainTaskRow
+                      key={t.id} task={t} cat={cat}
+                      isNew={t.id === newTaskId} staggerIndex={i}
+                      isEditing={editingId === t.id} editText={editText}
+                      onEditChange={setEditText} onStartEdit={startEdit}
+                      onSaveEdit={saveEdit} onCancelEdit={cancelEdit}
+                      onArchive={archive} onDelete={remove} onToggleStar={toggleStar}
+                      onAddSubtask={addSubtask} onToggleSubtask={toggleSubtask} onRemoveSubtask={removeSubtask} onEditSubtask={editSubtask}
+                      selectMode={selectMode} isSelected={selectedIds.has(t.id)} onToggleSelect={toggleSelect}
+                    />
+                  ))}
+                </div>
               )}
             </>
           )}
         </div>
       </main>
+
+      {/* ════════ BULK ACTION BAR ════════ */}
+      {selectMode && cat && (
+        <div className="fixed bottom-0 inset-x-0 z-20 bg-white border-t border-[#E0EAE0] shadow-lg md:left-60"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}>
+          <div className="flex items-center gap-2 px-4 pt-3.5 max-w-xl">
+            <span className="text-[13px] font-semibold text-[#3D4A3E] flex-1">
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Tap tasks to select'}
+            </span>
+            {selectedIds.size > 0 && (
+              <>
+                <button onClick={() => bulkArchive(selectedIds)} className="px-3 py-2 rounded-xl text-[12px] font-semibold text-white shadow-sm" style={{ backgroundColor: cat.color }}>Complete</button>
+                <button onClick={() => setMovePicker(true)} className="px-3 py-2 rounded-xl text-[12px] font-semibold bg-[#EEF3EC] text-[#3D4A3E]">Move</button>
+                <button onClick={() => bulkRemove(selectedIds)} className="px-3 py-2 rounded-xl text-[12px] font-semibold bg-rose-50 text-rose-500 flex items-center gap-1"><Trash2 size={12} />Delete</button>
+              </>
+            )}
+            <button onClick={exitSelectMode} className="px-3 py-2 text-[12px] font-medium text-[#9BAA9C]">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* ════════ MOVE PICKER ════════ */}
+      {movePicker && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)' }} onClick={() => setMovePicker(false)}>
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden view-enter" onClick={e => e.stopPropagation()}>
+            <div className="px-5 pt-5 pb-3">
+              <p className="text-[15px] font-semibold text-[#3D4A3E]">Move {selectedIds.size} task{selectedIds.size !== 1 ? 's' : ''} to…</p>
+            </div>
+            {categories.filter(c => c.id !== active).map(c => (
+              <button key={c.id} onClick={() => bulkMove(selectedIds, c.id)} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-[#F8F6F2] transition-colors border-t border-[#F0F0EE]">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: c.light }}>
+                  <CatIcon cat={c} size={16} style={{ color: c.color }} />
+                </div>
+                <span className="text-[14px] font-medium text-[#3D4A3E]">{c.name}</span>
+              </button>
+            ))}
+            <button onClick={() => setMovePicker(false)} className="w-full py-4 text-[13px] font-medium text-[#9BAA9C] border-t border-[#F0F0EE]">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* ════════ MOBILE FAB ════════ */}
+      {cat && !selectMode && (
+        <button
+          onClick={() => setMobileAddOpen(true)}
+          className="md:hidden fixed z-20 flex items-center justify-center w-14 h-14 rounded-full shadow-lg active:scale-90 transition-transform"
+          style={{ backgroundColor: cat.color, bottom: 'calc(env(safe-area-inset-bottom) + 104px)', right: '20px' }}
+        >
+          <Plus size={24} className="text-white" />
+        </button>
+      )}
+
+      {/* ════════ MOBILE ADD SHEET ════════ */}
+      {mobileAddOpen && cat && (
+        <div className="md:hidden fixed inset-0 z-40" onClick={() => { setMobileAddOpen(false); setText('') }}>
+          <div
+            className="absolute inset-x-0 bg-white border-t border-[#E0EAE0] px-4 pt-4 pb-3 shadow-2xl sheet-up"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <form onSubmit={e => { add(e); if (text.trim()) setMobileAddOpen(false) }}>
+              <input
+                autoFocus
+                value={text}
+                onChange={e => setText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') { setText(''); setMobileAddOpen(false) } }}
+                placeholder={`New task in ${cat.name}…`}
+                className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none"
+                style={{ borderColor: cat.color + '99', backgroundColor: cat.light || '#F8FAF8', fontSize: 16 }}
+              />
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ════════ TOAST ════════ */}
       {toast && (
@@ -857,7 +1045,7 @@ export default function App() {
       {/* ════════ MOBILE BOTTOM NAV ════════ */}
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 bg-[#ECF0EA] border-t border-[#D5E2D4] z-10 flex"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', paddingRight: 'env(safe-area-inset-right)' }}
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)', paddingTop: '8px', paddingRight: 'env(safe-area-inset-right)' }}
       >
         <div className="flex overflow-x-auto no-scrollbar flex-1">
           {allNavItems.map(c => {
@@ -869,7 +1057,7 @@ export default function App() {
               <button
                 key={c.id}
                 onClick={() => navTo(c.id)}
-                className="flex flex-col items-center justify-center flex-1 min-w-[68px] pt-3 pb-1 px-2 relative transition-colors"
+                className="flex flex-col items-center justify-center flex-1 min-w-[68px] pt-2 pb-2 px-2 relative transition-colors"
                 style={{ color: on ? c.color : '#9BAA9C' }}
               >
                 {on && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full" style={{ backgroundColor: c.color }} />}
@@ -956,103 +1144,214 @@ function SortableTaskRow(props) {
   )
 }
 
+// ── Plain (non-sortable) task row wrapper ──────────────────────────────────
+
+function PlainTaskRow(props) {
+  const [animClass] = useState(() => props.isNew ? 'task-entering' : 'task-stagger-in')
+  const delay = props.isNew ? 0 : Math.min(props.staggerIndex, 10) * 40
+  return (
+    <div className={animClass} style={{ animationDelay: `${delay}ms` }}>
+      <TaskRow {...props} isDragging={false} dragListeners={null} dragAttributes={null} />
+    </div>
+  )
+}
+
 // ── Task Row ───────────────────────────────────────────────────────────────
 
-function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, onToggleStar, isDragging, dragListeners, dragAttributes }) {
-  const [completing, setCompleting]   = useState(false)
-  const [deleting, setDeleting]       = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
+function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, onToggleStar, isDragging, dragListeners, dragAttributes, selectMode, isSelected, onToggleSelect, onAddSubtask, onToggleSubtask, onRemoveSubtask, onEditSubtask, overlay }) {
+  const [completing, setCompleting]         = useState(false)
+  const [deleting, setDeleting]             = useState(false)
+  const [confirmDelete, setConfirmDelete]   = useState(false)
+  const [subtasksOpen, setSubtasksOpen]     = useState(false)
+  const [subtasksClosing, setSubtasksClosing] = useState(false)
+  const [addingSubtask, setAddingSubtask]   = useState(false)
+  const [newSubtaskText, setNewSubtaskText] = useState('')
+  const [editingSubId, setEditingSubId]     = useState(null)
+  const [editSubText, setEditSubText]       = useState('')
+  const [removingSubIds, setRemovingSubIds] = useState(new Set())
+  const subtaskInputRef = useRef()
 
-  const handleComplete = () => {
-    setCompleting(true)
-    setTimeout(() => onArchive(task.id), 320)
+  const subtasks = task.subtasks || []
+  const doneSubs = subtasks.filter(s => s.done).length
+
+  const handleComplete = () => { setCompleting(true); setTimeout(() => onArchive(task.id), 320) }
+  const handleDelete   = () => { setDeleting(true);   setTimeout(() => onDelete(task.id), 260) }
+
+  const closeSubtasks = () => {
+    setSubtasksClosing(true)
+    setAddingSubtask(false)
+    setNewSubtaskText('')
+    setTimeout(() => { setSubtasksOpen(false); setSubtasksClosing(false) }, 150)
   }
 
-  const handleDelete = () => {
-    setDeleting(true)
-    setTimeout(() => onDelete(task.id), 260)
+  const handleAddSubtask = e => {
+    e.preventDefault()
+    if (!newSubtaskText.trim()) return
+    const newId = Date.now()
+    onAddSubtask(task.id, newSubtaskText.trim(), newId)
+    setNewSubtaskText('')
+    subtaskInputRef.current?.focus()
+  }
+
+  const handleRemoveSubtask = subId => {
+    setRemovingSubIds(p => new Set([...p, subId]))
+    setTimeout(() => {
+      onRemoveSubtask(task.id, subId)
+      setRemovingSubIds(p => { const n = new Set(p); n.delete(subId); return n })
+    }, 200)
   }
 
   return (
-    <div
-      className={`group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border shadow-sm transition-all ${
-        completing ? 'task-completing'
-        : deleting  ? 'task-deleting'
-        : isDragging ? 'border-[#7C9A7E] shadow-lg opacity-50 rotate-1 scale-[1.02]'
-                     : 'border-[#E0EAE0] md:hover:border-[#C8DCC8] md:hover:shadow'
-      }`}
-    >
-      <span
-        {...dragListeners} {...dragAttributes}
-        className="shrink-0 flex items-center text-[#D0DDD0] md:group-hover:text-[#A8BAA8] cursor-grab active:cursor-grabbing touch-none select-none transition-colors p-1 -ml-1"
+    <>
+      <div
+        className={`group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border shadow-sm transition-all ${
+          completing  ? 'task-completing'
+          : deleting  ? 'task-deleting'
+          : isDragging ? 'border-[#7C9A7E] shadow-lg opacity-50 rotate-1 scale-[1.02]'
+          : isSelected ? 'border-[#7C9A7E]'
+          : 'border-[#E0EAE0] md:hover:border-[#C8DCC8] md:hover:shadow'
+        }`}
+        style={isSelected ? { borderColor: cat.color } : undefined}
       >
-        <GripVertical size={16} />
-      </span>
-
-      <button
-        onClick={handleComplete}
-        className="shrink-0 -m-1 p-1 rounded-full transition-all active:scale-90 group/check"
-      >
-        <div
-          className={`w-[20px] h-[20px] rounded-full border-2 transition-all group-hover/check:scale-110 ${completing ? 'scale-125' : ''}`}
-          style={{
-            borderColor: completing ? cat.color : '#C0D0BF',
-            backgroundColor: completing ? cat.color + '33' : 'transparent',
-          }}
-          onMouseEnter={e => { if (!completing) { e.currentTarget.style.borderColor = cat.color; e.currentTarget.style.backgroundColor = cat.color + '22' } }}
-          onMouseLeave={e => { if (!completing) { e.currentTarget.style.borderColor = '#C0D0BF'; e.currentTarget.style.backgroundColor = 'transparent' } }}
-        />
-      </button>
-
-      {isEditing ? (
-        <input
-          autoFocus
-          value={editText}
-          onChange={e => onEditChange(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') onSaveEdit(task.id); if (e.key === 'Escape') onCancelEdit() }}
-          onBlur={() => onSaveEdit(task.id)}
-          className="flex-1 text-[#3D4A3E] outline-none bg-transparent border-b pb-px"
-          style={{ borderColor: cat.color, fontSize: 16 }}
-        />
-      ) : (
-        <span className="flex-1 text-[#3D4A3E] select-none leading-snug" style={{ fontSize: 14 }}>{task.text}</span>
-      )}
-
-      {!isEditing && (
-        <div className={`flex items-center gap-0.5 shrink-0 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
-          <button
-            onClick={() => onToggleStar(task.id)}
-            className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
-              task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'
-            }`}
-          >
-            <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}>
-              <Star size={14} fill={task.starred ? 'currentColor' : 'none'} />
+        {/* Select checkbox */}
+        {selectMode && (
+          <button onClick={() => onToggleSelect(task.id)} className="shrink-0 -m-1 p-1 transition-all active:scale-90 checkbox-in">
+            <span key={String(isSelected)} className="check-pop">
+              {isSelected ? <SquareCheck size={18} style={{ color: cat.color }} /> : <Square size={18} className="text-[#C0D0BF]" />}
             </span>
           </button>
-          <button
-            onClick={() => onStartEdit(task.id, task.text)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all"
-          >
-            <Pencil size={14} />
+        )}
+
+        {/* Drag handle — only when sortable */}
+        {dragListeners && !selectMode && (
+          <span {...dragListeners} {...dragAttributes} className="shrink-0 flex items-center text-[#D0DDD0] md:group-hover:text-[#A8BAA8] cursor-grab active:cursor-grabbing touch-none select-none transition-colors p-1 -ml-1">
+            <GripVertical size={16} />
+          </span>
+        )}
+
+        {/* Complete circle */}
+        {!selectMode && (
+          <button onClick={handleComplete} className="shrink-0 -m-1 p-1 rounded-full transition-all active:scale-90 group/check">
+            <div
+              className={`w-[20px] h-[20px] rounded-full border-2 transition-all group-hover/check:scale-110 ${completing ? 'scale-125' : ''}`}
+              style={{ borderColor: completing ? cat.color : '#C0D0BF', backgroundColor: completing ? cat.color + '33' : 'transparent' }}
+              onMouseEnter={e => { if (!completing) { e.currentTarget.style.borderColor = cat.color; e.currentTarget.style.backgroundColor = cat.color + '22' } }}
+              onMouseLeave={e => { if (!completing) { e.currentTarget.style.borderColor = '#C0D0BF'; e.currentTarget.style.backgroundColor = 'transparent' } }}
+            />
           </button>
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all"
-          >
-            <X size={16} />
-          </button>
+        )}
+
+        {/* Text + subtask progress */}
+        <div className="flex-1 min-w-0">
+          {isEditing ? (
+            <input
+              autoFocus value={editText}
+              onChange={e => onEditChange(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') onSaveEdit(task.id); if (e.key === 'Escape') onCancelEdit() }}
+              onBlur={() => onSaveEdit(task.id)}
+              className="w-full text-[#3D4A3E] outline-none bg-transparent border-b pb-px"
+              style={{ borderColor: cat.color, fontSize: 16 }}
+            />
+          ) : (
+            <>
+              <span className="text-[#3D4A3E] select-none leading-snug" style={{ fontSize: 14 }}>{task.text}</span>
+              {subtasks.length > 0 && !overlay && (
+                <button onClick={() => setSubtasksOpen(p => !p)} className="flex items-center gap-1 mt-0.5">
+                  <span className="text-[11px] font-medium" style={{ color: cat.color }}>{doneSubs}/{subtasks.length}</span>
+                  <ChevronDown size={11} style={{ color: cat.color, transform: subtasksOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Action buttons */}
+        {!isEditing && !selectMode && (
+          <div className={`flex items-center gap-0.5 shrink-0 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
+            {!overlay && (
+              <button onClick={() => { if ((subtasksOpen || subtasksClosing) && !newSubtaskText.trim()) { closeSubtasks() } else { setSubtasksOpen(true); setAddingSubtask(true) } }} title="Add subtask" className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] transition-all">
+                <ListPlus size={14} />
+              </button>
+            )}
+            <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
+              <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
+            </button>
+            <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
+              <Pencil size={14} />
+            </button>
+            <button onClick={() => setConfirmDelete(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        {confirmDelete && <ConfirmModal message={task.text} onConfirm={() => { setConfirmDelete(false); handleDelete() }} onCancel={() => setConfirmDelete(false)} />}
+      </div>
+
+      {/* Subtasks */}
+      {(subtasksOpen || subtasksClosing) && !overlay && (
+        <div
+          className={`ml-8 mt-1.5 mb-0.5 pl-3 border-l-2 space-y-0.5 ${subtasksClosing ? 'subtask-section-out' : 'subtask-section-in'}`}
+          style={{ borderColor: cat.color + '55' }}
+        >
+          {subtasks.map((s, i) => (
+            <div
+              key={s.id}
+              className={`flex items-center gap-2 group/sub py-1 ${removingSubIds.has(s.id) ? 'subtask-row-out' : 'subtask-row-in'}`}
+              style={{ animationDelay: removingSubIds.has(s.id) ? '0ms' : `${Math.min(i, 8) * 35}ms` }}
+            >
+              <button onClick={() => onToggleSubtask(task.id, s.id)} className="shrink-0 active:scale-90 transition-transform">
+                <div className="w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all" style={{ borderColor: s.done ? cat.color : '#C0D0BF', backgroundColor: s.done ? cat.color : 'transparent' }}>
+                  {s.done && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                </div>
+              </button>
+              {editingSubId === s.id ? (
+                <input
+                  autoFocus
+                  value={editSubText}
+                  onChange={e => setEditSubText(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') { onEditSubtask(task.id, s.id, editSubText); setEditingSubId(null) }
+                    if (e.key === 'Escape') setEditingSubId(null)
+                  }}
+                  onBlur={() => { onEditSubtask(task.id, s.id, editSubText); setEditingSubId(null) }}
+                  className="flex-1 text-[13px] text-[#3D4A3E] outline-none bg-transparent border-b pb-px"
+                  style={{ borderColor: cat.color }}
+                />
+              ) : (
+                <span
+                  onDoubleClick={() => { setEditingSubId(s.id); setEditSubText(s.text) }}
+                  className={`flex-1 text-[13px] leading-snug cursor-text ${s.done ? 'line-through text-[#9BAA9C]' : 'text-[#3D4A3E]'}`}
+                >{s.text}</span>
+              )}
+              <button onClick={() => handleRemoveSubtask(s.id)} className="opacity-0 group-hover/sub:opacity-100 w-7 h-7 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 transition-all">
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+          {addingSubtask ? (
+            <form onSubmit={handleAddSubtask} className="flex items-center gap-2 py-1">
+              <div className="w-4 h-4 rounded-full border-2 border-[#D0DDD0] shrink-0" />
+              <input
+                ref={subtaskInputRef} autoFocus
+                value={newSubtaskText} onChange={e => setNewSubtaskText(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') { setAddingSubtask(false); setNewSubtaskText('') } }}
+                onBlur={() => { if (!newSubtaskText.trim()) setAddingSubtask(false) }}
+                placeholder="Add subtask…"
+                className="flex-1 text-[13px] text-[#3D4A3E] placeholder-[#C0CCC0] outline-none bg-transparent"
+              />
+              {newSubtaskText.trim() && (
+                <button type="submit" className="text-[11px] font-semibold px-2.5 py-1 rounded-lg text-white shrink-0" style={{ backgroundColor: cat.color }}>Add</button>
+              )}
+            </form>
+          ) : (
+            <button onClick={() => setAddingSubtask(true)} className="flex items-center gap-1.5 text-[12px] text-[#B5C4B6] hover:text-[#7C9A7E] py-1 transition-colors">
+              <Plus size={12} />Add subtask
+            </button>
+          )}
         </div>
       )}
-
-      {confirmDelete && (
-        <ConfirmModal
-          message={task.text}
-          onConfirm={() => { setConfirmDelete(false); handleDelete() }}
-          onCancel={() => setConfirmDelete(false)}
-        />
-      )}
-    </div>
+    </>
   )
 }
 
