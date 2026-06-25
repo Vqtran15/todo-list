@@ -20,7 +20,7 @@ import {
   Sparkles, Bike, Baby, Pill, PawPrint, Sunrise, Wallet, Globe,
   // UI icons
   Plus, Search, Pencil, X, GripVertical, Settings, ChevronDown,
-  Square, SquareCheck, ListPlus, Trash2,
+  Square, SquareCheck, ListPlus, Trash2, MoreHorizontal,
 } from 'lucide-react'
 
 // ── Icon registry ──────────────────────────────────────────────────────────
@@ -1038,7 +1038,7 @@ export default function App() {
             <div className="absolute inset-x-0 bottom-0 bg-white" style={{ height: kbOffset + 1 }} />
           )}
           <div
-            className="absolute inset-x-0 bg-white rounded-t-2xl border-t border-[#E0EAE0] shadow-2xl sheet-up"
+            className="absolute inset-x-0 bg-white rounded-t-2xl border-t border-[#E0EAE0] sheet-up"
             style={{
               bottom: kbOffset,
               paddingBottom: kbOffset > 0 ? '20px' : 'calc(env(safe-area-inset-bottom) + 20px)',
@@ -1217,6 +1217,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
   const [editingSubId, setEditingSubId]     = useState(null)
   const [editSubText, setEditSubText]       = useState('')
   const [removingSubIds, setRemovingSubIds] = useState(new Set())
+  const [actionsOpen, setActionsOpen]       = useState(false)
   const subtaskInputRef = useRef()
 
   const subtasks = task.subtasks || []
@@ -1315,21 +1316,59 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
         {/* Action buttons */}
         {!isEditing && !selectMode && (
-          <div className={`flex items-center gap-0.5 shrink-0 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
+          <div className="flex items-center gap-0.5 shrink-0">
+
+            {/* ── Mobile: star (collapsed) or 3 actions (expanded) ── */}
+            {!actionsOpen ? (
+              <button onClick={() => onToggleStar(task.id)} className={`md:hidden w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
+                <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
+              </button>
+            ) : (
+              <div className="md:hidden flex items-center gap-0.5 actions-expand">
+                {!overlay && (
+                  <button onClick={() => { setSubtasksOpen(true); setAddingSubtask(true); setActionsOpen(false) }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] active:text-[#7C9A7E] transition-all">
+                    <ListPlus size={14} />
+                  </button>
+                )}
+                <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
+                  <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
+                </button>
+                <button onClick={() => { onStartEdit(task.id, task.text); setActionsOpen(false) }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] active:text-[#7C9A7E] transition-all">
+                  <Pencil size={14} />
+                </button>
+                <button onClick={() => { setConfirmDelete(true); setActionsOpen(false) }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] active:text-rose-400 transition-all">
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+
+            {/* ── Mobile: ellipsis toggle (always rightmost) ── */}
             {!overlay && (
-              <button onClick={() => { if ((subtasksOpen || subtasksClosing) && !newSubtaskText.trim()) { closeSubtasks() } else { setSubtasksOpen(true); setAddingSubtask(true) } }} title="Add subtask" className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] transition-all">
-                <ListPlus size={14} />
+              <button
+                onClick={() => setActionsOpen(p => !p)}
+                className={`md:hidden w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${actionsOpen ? 'text-[#7C9A7E]' : 'text-[#C0D0BF]'}`}
+              >
+                <MoreHorizontal size={16} />
               </button>
             )}
-            <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
-              <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
-            </button>
-            <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
-              <Pencil size={14} />
-            </button>
-            <button onClick={() => setConfirmDelete(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
-              <X size={16} />
-            </button>
+
+            {/* ── Desktop: all 4 with hover ── */}
+            <div className={`hidden md:flex items-center gap-0.5 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+              {!overlay && (
+                <button onClick={() => { if ((subtasksOpen || subtasksClosing) && !newSubtaskText.trim()) { closeSubtasks() } else { setSubtasksOpen(true); setAddingSubtask(true) } }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] transition-all">
+                  <ListPlus size={14} />
+                </button>
+              )}
+              <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
+                <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
+              </button>
+              <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
+                <Pencil size={14} />
+              </button>
+              <button onClick={() => setConfirmDelete(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
+                <X size={16} />
+              </button>
+            </div>
           </div>
         )}
 

@@ -166,6 +166,15 @@ body { margin: 0; }
   overflow: hidden;
 }
 
+/* Mobile action buttons expand */
+@keyframes actions-expand {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.actions-expand {
+  animation: actions-expand 0.16s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
 /* Select mode checkbox slide-in */
 @keyframes checkbox-in {
   0%   { opacity: 0; transform: translateX(-10px) scale(0.75); }
