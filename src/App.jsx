@@ -1034,25 +1034,29 @@ export default function App() {
       {mobileAddOpen && cat && (
         <div className="md:hidden fixed inset-0 z-40" onClick={() => { setMobileAddOpen(false); setText('') }}>
           <div
-            className="absolute inset-x-0 bg-white rounded-t-2xl shadow-2xl sheet-up overflow-hidden"
+            className="absolute inset-x-0 bg-white rounded-t-2xl border-t border-[#E0EAE0] shadow-2xl sheet-up"
             style={{
               bottom: kbOffset,
               paddingBottom: kbOffset > 0 ? '20px' : 'calc(env(safe-area-inset-bottom) + 20px)',
-              borderTop: `4px solid ${cat.color}`,
             }}
             onClick={e => e.stopPropagation()}
           >
             {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: cat.color + '44' }} />
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 rounded-full bg-[#D0DDD0]" />
             </div>
 
-            {/* Header */}
-            <div className="flex items-center gap-2.5 px-5 pt-2 pb-4">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: cat.light }}>
-                <CatIcon cat={cat} size={16} style={{ color: cat.color }} />
+            {/* Header row */}
+            <div className="flex items-center gap-2.5 px-4 pb-3">
+              <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: cat.light }}>
+                <CatIcon cat={cat} size={14} style={{ color: cat.color }} />
               </div>
-              <p className="text-[15px] font-semibold" style={{ color: cat.dark }}>Add to {cat.name}</p>
+              <span className="flex-1 text-[14px] font-semibold" style={{ color: cat.dark }}>{cat.name}</span>
+              <button
+                type="button"
+                onClick={() => { setMobileAddOpen(false); setText('') }}
+                className="text-[14px] font-medium text-[#9BAA9C] active:opacity-60 px-1"
+              >Cancel</button>
             </div>
 
             {/* Input */}
@@ -1063,10 +1067,10 @@ export default function App() {
                 onChange={e => setText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape') { setText(''); setMobileAddOpen(false) } }}
                 placeholder="New task…"
-                className="w-full px-4 py-3.5 rounded-xl border-2 text-[#3D4A3E] placeholder-[#BFC9C0] outline-none transition-colors"
-                style={{ borderColor: cat.color + '44', backgroundColor: cat.light || '#F8FAF8', fontSize: 16 }}
+                className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm transition-colors"
+                style={{ borderColor: '#DBE8DA', fontSize: 16 }}
                 onFocus={e => (e.target.style.borderColor = cat.color + 'BB')}
-                onBlur={e => (e.target.style.borderColor = cat.color + '44')}
+                onBlur={e => (e.target.style.borderColor = '#DBE8DA')}
               />
             </form>
           </div>
