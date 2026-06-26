@@ -12,7 +12,7 @@ body { margin: 0; }
 /* View transitions */
 @keyframes view-in {
   from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 .view-enter {
   animation: view-in 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -20,7 +20,7 @@ body { margin: 0; }
 
 @keyframes slide-in-from-right {
   from { opacity: 0; transform: translateX(48px); }
-  to   { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; transform: none; }
 }
 .slide-from-right {
   animation: slide-in-from-right 0.26s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -28,7 +28,7 @@ body { margin: 0; }
 
 @keyframes slide-in-from-left {
   from { opacity: 0; transform: translateX(-48px); }
-  to   { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; transform: none; }
 }
 .slide-from-left {
   animation: slide-in-from-left 0.26s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -49,7 +49,7 @@ body { margin: 0; }
 /* Task stagger on category switch */
 @keyframes task-stagger-in {
   from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 .task-stagger-in {
   animation: task-stagger-in 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -58,7 +58,7 @@ body { margin: 0; }
 /* Task enter */
 @keyframes task-enter {
   from { opacity: 0; transform: translateY(-14px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)     scale(1); }
+  to   { opacity: 1; transform: none; }
 }
 .task-entering {
   animation: task-enter 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -79,7 +79,7 @@ body { margin: 0; }
 /* Category card enter/exit in Settings */
 @keyframes cat-enter {
   from { opacity: 0; transform: translateY(-10px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)     scale(1); }
+  to   { opacity: 1; transform: none; }
 }
 .cat-entering { animation: cat-enter 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
 
@@ -106,21 +106,21 @@ body { margin: 0; }
   0%   { transform: scale(1); }
   40%  { transform: scale(1.5); }
   70%  { transform: scale(0.9); }
-  100% { transform: scale(1); }
+  100% { transform: none; }
 }
 .star-pop { animation: star-pop 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
 
 /* Search / add field expand */
 @keyframes field-expand {
   from { opacity: 0; transform: translateY(-5px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 .field-expand { animation: field-expand 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
 
 /* Mobile add sheet slide up */
 @keyframes sheet-up {
   from { transform: translateY(100%); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  to   { transform: none;             opacity: 1; }
 }
 .sheet-up {
   animation: sheet-up 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -177,7 +177,7 @@ body { margin: 0; }
 /* Mobile action buttons expand */
 @keyframes actions-expand {
   from { opacity: 0; transform: translateX(12px); }
-  to   { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; transform: none; }
 }
 .actions-expand {
   animation: actions-expand 0.16s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -186,7 +186,7 @@ body { margin: 0; }
 /* Bulk action bar slide-in/out */
 @keyframes bulk-bar-in {
   from { transform: translateY(100%); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  to   { transform: none;             opacity: 1; }
 }
 .bulk-bar-in { animation: bulk-bar-in 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
 
@@ -199,7 +199,7 @@ body { margin: 0; }
 /* Bulk action buttons appear when tasks are selected */
 @keyframes bulk-actions-in {
   from { opacity: 0; transform: translateY(6px) scale(0.95); }
-  to   { opacity: 1; transform: translateY(0)   scale(1); }
+  to   { opacity: 1; transform: none; }
 }
 .bulk-actions-in { animation: bulk-actions-in 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
 
@@ -216,7 +216,7 @@ body { margin: 0; }
 /* Completed section open/close */
 @keyframes completed-section-in {
   0%   { opacity: 0; transform: translateY(-8px); }
-  100% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 1; transform: none; }
 }
 .completed-section-in {
   animation: completed-section-in 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -233,7 +233,7 @@ body { margin: 0; }
 /* Select mode checkbox slide-in */
 @keyframes checkbox-in {
   0%   { opacity: 0; transform: translateX(-10px) scale(0.75); }
-  100% { opacity: 1; transform: translateX(0)     scale(1); }
+  100% { opacity: 1; transform: none; }
 }
 .checkbox-in {
   animation: checkbox-in 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -243,7 +243,7 @@ body { margin: 0; }
 @keyframes check-pop {
   0%   { transform: scale(0.65); }
   55%  { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  100% { transform: none; }
 }
 .check-pop {
   display: flex;
