@@ -1264,6 +1264,18 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
   const [editingSubId, setEditingSubId]     = useState(null)
   const [editSubText, setEditSubText]       = useState('')
   const [removingSubIds, setRemovingSubIds] = useState(new Set())
+  const [starAnim, setStarAnim]             = useState(false)
+  const prevStarredRef = useRef(task.starred)
+  useEffect(() => {
+    if (task.starred !== prevStarredRef.current) {
+      prevStarredRef.current = task.starred
+      if (task.starred) {
+        setStarAnim(true)
+        const t = setTimeout(() => setStarAnim(false), 700)
+        return () => clearTimeout(t)
+      }
+    }
+  }, [task.starred])
   const [actionSheetOpen, setActionSheetOpen]       = useState(false)
   const [actionSheetClosing, setActionSheetClosing] = useState(false)
   const [sheetView, setSheetView]                   = useState('menu')
@@ -1349,7 +1361,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
   return (
     <>
       <div
-        className={`group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border shadow-sm transition-all ${
+        className={`relative group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border shadow-sm transition-all ${
           completing  ? 'task-completing'
           : deleting  ? 'task-deleting'
           : isDragging ? 'border-[#7C9A7E] shadow-lg opacity-50 rotate-1 scale-[1.02]'
@@ -1446,6 +1458,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
         )}
 
         {confirmDelete && <ConfirmModal message={task.text} onConfirm={() => { setConfirmDelete(false); handleDelete() }} onCancel={() => setConfirmDelete(false)} />}
+        {starAnim && <Star size={22} fill="#C4A93A" className="star-celebrate pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 z-10" style={{ color: '#C4A93A' }} />}
       </div>
 
       {/* Mobile action sheet — rendered in a portal to escape any transformed ancestor */}
@@ -1600,7 +1613,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   </div>
                 ))}
               </div>
-              <div className="px-4 pt-1 pb-2">
+              <div className="px-4 pt-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
                 {pendingDeleteSubId ? (() => {
                   const sub = subtasks.find(s => s.id === pendingDeleteSubId)
                   return (

@@ -101,6 +101,15 @@ body { margin: 0; }
   pointer-events: none;
 }
 
+/* Star celebration on task row when starred */
+@keyframes star-celebrate {
+  0%   { opacity: 0; transform: scale(0.2) rotate(-20deg); }
+  35%  { opacity: 1; transform: scale(1.5) rotate(8deg); }
+  65%  { opacity: 1; transform: scale(1.1) rotate(-3deg); }
+  100% { opacity: 0; transform: scale(0.9); }
+}
+.star-celebrate { animation: star-celebrate 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+
 /* Star button bounce when activated */
 @keyframes star-pop {
   0%   { transform: scale(1); }
