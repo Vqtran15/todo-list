@@ -454,6 +454,14 @@ export default function App() {
   }
   const cancelEdit = () => setEditingId(null)
 
+  const renameTask = (id, text) => {
+    if (!text.trim()) return
+    const prev = tasks
+    setTasks(p => p.map(t => t.id === id ? { ...t, text: text.trim() } : t))
+    supabase.from('tasks').update({ text: text.trim() }).eq('id', id)
+      .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to save.') } })
+  }
+
   const handleDragEnd = ({ active: a, over }) => {
     setDragActiveId(null)
     if (!over || a.id === over.id) return
@@ -761,7 +769,7 @@ export default function App() {
                           onEditChange={setEditText} onStartEdit={startEdit}
                           onSaveEdit={saveEdit} onCancelEdit={cancelEdit}
                           onArchive={archive} onDelete={remove}
-                          onToggleStar={toggleStar}
+                          onToggleStar={toggleStar} onRenameTask={renameTask}
                         />
                       )
                     })}
@@ -805,7 +813,7 @@ export default function App() {
                               onEditChange={setEditText} onStartEdit={startEdit}
                               onSaveEdit={saveEdit} onCancelEdit={cancelEdit}
                               onArchive={archive} onDelete={remove}
-                              onToggleStar={toggleStar}
+                              onToggleStar={toggleStar} onRenameTask={renameTask}
                             />
                           ))}
                         </div>
@@ -903,7 +911,7 @@ export default function App() {
                           isEditing={editingId === t.id} editText={editText}
                           onEditChange={setEditText} onStartEdit={startEdit}
                           onSaveEdit={saveEdit} onCancelEdit={cancelEdit}
-                          onArchive={archive} onDelete={remove} onToggleStar={toggleStar}
+                          onArchive={archive} onDelete={remove} onToggleStar={toggleStar} onRenameTask={renameTask}
                           onAddSubtask={addSubtask} onToggleSubtask={toggleSubtask} onRemoveSubtask={removeSubtask} onEditSubtask={editSubtask}
                           selectMode={selectMode} isSelected={selectedIds.has(t.id)} onToggleSelect={toggleSelect}
                         />
@@ -919,7 +927,7 @@ export default function App() {
                           isEditing={false} editText=""
                           onEditChange={() => {}} onStartEdit={() => {}}
                           onSaveEdit={() => {}} onCancelEdit={() => {}}
-                          onArchive={() => {}} onDelete={() => {}} onToggleStar={() => {}}
+                          onArchive={() => {}} onDelete={() => {}} onToggleStar={() => {}} onRenameTask={() => {}}
                           onAddSubtask={() => {}} onToggleSubtask={() => {}} onRemoveSubtask={() => {}} onEditSubtask={() => {}}
                           isDragging={true} dragListeners={{}} dragAttributes={{}}
                           selectMode={false} isSelected={false} onToggleSelect={() => {}}
@@ -937,7 +945,7 @@ export default function App() {
                       isEditing={editingId === t.id} editText={editText}
                       onEditChange={setEditText} onStartEdit={startEdit}
                       onSaveEdit={saveEdit} onCancelEdit={cancelEdit}
-                      onArchive={archive} onDelete={remove} onToggleStar={toggleStar}
+                      onArchive={archive} onDelete={remove} onToggleStar={toggleStar} onRenameTask={renameTask}
                       onAddSubtask={addSubtask} onToggleSubtask={toggleSubtask} onRemoveSubtask={removeSubtask} onEditSubtask={editSubtask}
                       selectMode={selectMode} isSelected={selectedIds.has(t.id)} onToggleSelect={toggleSelect}
                     />
@@ -1218,7 +1226,7 @@ function PlainTaskRow(props) {
 
 // ── Task Row ───────────────────────────────────────────────────────────────
 
-function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, onToggleStar, isDragging, dragListeners, dragAttributes, selectMode, isSelected, onToggleSelect, onAddSubtask, onToggleSubtask, onRemoveSubtask, onEditSubtask, overlay }) {
+function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, onToggleStar, onRenameTask, isDragging, dragListeners, dragAttributes, selectMode, isSelected, onToggleSelect, onAddSubtask, onToggleSubtask, onRemoveSubtask, onEditSubtask, overlay }) {
   const [completing, setCompleting]         = useState(false)
   const [deleting, setDeleting]             = useState(false)
   const [confirmDelete, setConfirmDelete]   = useState(false)
@@ -1229,14 +1237,32 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
   const [editingSubId, setEditingSubId]     = useState(null)
   const [editSubText, setEditSubText]       = useState('')
   const [removingSubIds, setRemovingSubIds] = useState(new Set())
-  const [actionSheetOpen, setActionSheetOpen]     = useState(false)
+  const [actionSheetOpen, setActionSheetOpen]       = useState(false)
   const [actionSheetClosing, setActionSheetClosing] = useState(false)
+  const [sheetView, setSheetView]                   = useState('menu')
+  const [sheetEditText, setSheetEditText]           = useState('')
+  const [sheetSubtaskText, setSheetSubtaskText]     = useState('')
+  const [sheetKbOffset, setSheetKbOffset]           = useState(0)
   const subtaskInputRef = useRef()
+  const sheetEditRef    = useRef()
+  const sheetSubRef     = useRef()
 
+  const openActionSheet = () => { setSheetView('menu'); setActionSheetOpen(true) }
   const closeActionSheet = () => {
     setActionSheetClosing(true)
-    setTimeout(() => { setActionSheetOpen(false); setActionSheetClosing(false) }, 200)
+    setTimeout(() => { setActionSheetOpen(false); setActionSheetClosing(false); setSheetView('menu') }, 200)
   }
+
+  useEffect(() => {
+    if (!actionSheetOpen || sheetView === 'menu') { setSheetKbOffset(0); return }
+    const update = () => {
+      const vv = window.visualViewport
+      setSheetKbOffset(vv ? Math.max(0, window.innerHeight - vv.height) : 0)
+    }
+    window.visualViewport?.addEventListener('resize', update)
+    update()
+    return () => { window.visualViewport?.removeEventListener('resize', update); setSheetKbOffset(0) }
+  }, [actionSheetOpen, sheetView])
 
   const subtasks = task.subtasks || []
   const doneSubs = subtasks.filter(s => s.done).length
@@ -1336,14 +1362,12 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
         {!isEditing && !selectMode && (
           <div className="flex items-center gap-0.5 shrink-0">
 
-            {/* ── Mobile: star + 3-dot trigger ── */}
-            <button onClick={() => onToggleStar(task.id)} className={`md:hidden w-11 h-11 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
-              <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={16} fill={task.starred ? 'currentColor' : 'none'} /></span>
-            </button>
+            {/* ── Mobile: 3-dot trigger only ── */}
             {!overlay && (
               <button
-                onClick={() => setActionSheetOpen(true)}
+                onClick={openActionSheet}
                 className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-[#C0D0BF] transition-colors"
+                style={{ touchAction: 'manipulation' }}
               >
                 <MoreHorizontal size={16} />
               </button>
@@ -1374,42 +1398,122 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
       {/* Mobile action sheet — rendered in a portal to escape any transformed ancestor */}
       {(actionSheetOpen || actionSheetClosing) && createPortal(
-        <div className="md:hidden fixed inset-0 z-50" onClick={closeActionSheet}>
+        <div className="md:hidden fixed inset-0 z-50" onClick={sheetView === 'menu' ? closeActionSheet : undefined}>
           <div className="absolute inset-0 bg-black/25 transition-opacity duration-200" style={{ opacity: actionSheetClosing ? 0 : 1 }} />
           <div
-            className={`absolute inset-x-0 bottom-0 bg-white rounded-t-2xl shadow-xl ${actionSheetClosing ? 'sheet-down' : 'sheet-up'}`}
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
+            className={`absolute inset-x-0 bg-white rounded-t-2xl shadow-xl ${actionSheetClosing ? 'sheet-down' : 'sheet-up'}`}
+            style={{
+              bottom: sheetKbOffset,
+              paddingBottom: sheetKbOffset > 0 ? '12px' : 'calc(env(safe-area-inset-bottom) + 8px)',
+              transition: sheetKbOffset > 0 ? 'bottom 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : undefined,
+            }}
             onClick={e => e.stopPropagation()}
           >
+            {/* Handle */}
             <div className="flex justify-center pt-3 pb-2"><div className="w-10 h-1 rounded-full bg-[#D0DDD0]" /></div>
-            <div className="px-5 pb-3 border-b border-[#F0F4EF]">
-              <p className="text-[13px] text-[#9BAA9C] truncate">{task.text}</p>
-            </div>
-            <div className="py-1">
-              <button onClick={() => { onToggleStar(task.id); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
-                <Star size={18} fill={task.starred ? 'currentColor' : 'none'} style={{ color: task.starred ? '#C4A93A' : '#7C9A7E' }} />
-                <span className="text-[15px] text-[#3D4A3E]">{task.starred ? 'Unstar' : 'Star'}</span>
-              </button>
-              {!overlay && (
-                <button onClick={() => { setSubtasksOpen(true); setAddingSubtask(true); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
-                  <ListPlus size={18} style={{ color: '#7C9A7E' }} />
-                  <span className="text-[15px] text-[#3D4A3E]">Add Subtask</span>
+
+            {/* ── Menu view ── */}
+            {sheetView === 'menu' && <>
+              <div className="px-5 pb-3 border-b border-[#F0F4EF]">
+                <p className="text-[13px] text-[#9BAA9C] truncate">{task.text}</p>
+              </div>
+              <div className="py-1">
+                <button onClick={() => { onToggleStar(task.id); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <Star size={18} fill={task.starred ? 'currentColor' : 'none'} style={{ color: task.starred ? '#C4A93A' : '#7C9A7E' }} />
+                  <span className="text-[15px] text-[#3D4A3E]">{task.starred ? 'Unstar' : 'Star'}</span>
                 </button>
-              )}
-              <button onClick={() => { onStartEdit(task.id, task.text); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
-                <Pencil size={18} style={{ color: '#7C9A7E' }} />
-                <span className="text-[15px] text-[#3D4A3E]">Edit</span>
-              </button>
-              <button onClick={() => { setConfirmDelete(true); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-rose-50 transition-colors" style={{ touchAction: 'manipulation' }}>
-                <Trash2 size={18} className="text-rose-400" />
-                <span className="text-[15px] text-rose-400">Delete</span>
-              </button>
-            </div>
-            <div className="px-4 pt-1 pb-2">
-              <button onClick={closeActionSheet} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
-                Cancel
-              </button>
-            </div>
+                {!overlay && (
+                  <button onClick={() => { setSheetSubtaskText(''); setSheetView('subtask') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                    <ListPlus size={18} style={{ color: '#7C9A7E' }} />
+                    <span className="text-[15px] text-[#3D4A3E]">Add Subtask</span>
+                  </button>
+                )}
+                <button onClick={() => { setSheetEditText(task.text); setSheetView('edit') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <Pencil size={18} style={{ color: '#7C9A7E' }} />
+                  <span className="text-[15px] text-[#3D4A3E]">Edit</span>
+                </button>
+                <button onClick={() => { setConfirmDelete(true); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-rose-50 transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <Trash2 size={18} className="text-rose-400" />
+                  <span className="text-[15px] text-rose-400">Delete</span>
+                </button>
+              </div>
+              <div className="px-4 pt-1 pb-2">
+                <button onClick={closeActionSheet} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  Cancel
+                </button>
+              </div>
+            </>}
+
+            {/* ── Edit view ── */}
+            {sheetView === 'edit' && <>
+              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
+                <button onClick={() => setSheetView('menu')} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
+                </button>
+                <span className="text-[14px] font-semibold text-[#3D4A3E]">Edit Task</span>
+              </div>
+              <div className="px-4 py-4">
+                <textarea
+                  ref={sheetEditRef}
+                  autoFocus
+                  value={sheetEditText}
+                  onChange={e => setSheetEditText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Escape') setSheetView('menu') }}
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] outline-none resize-none shadow-sm"
+                  style={{ borderColor: cat.color + 'BB', fontSize: 16 }}
+                />
+              </div>
+              <div className="px-4 pb-2 flex flex-col gap-2">
+                <button
+                  onClick={() => { if (sheetEditText.trim()) { onRenameTask(task.id, sheetEditText.trim()); closeActionSheet() } }}
+                  className="w-full py-3.5 rounded-xl text-[15px] font-semibold text-white transition-colors active:opacity-80"
+                  style={{ backgroundColor: cat.color, touchAction: 'manipulation' }}
+                >
+                  Save
+                </button>
+                <button onClick={() => setSheetView('menu')} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  Cancel
+                </button>
+              </div>
+            </>}
+
+            {/* ── Add Subtask view ── */}
+            {sheetView === 'subtask' && <>
+              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
+                <button onClick={() => setSheetView('menu')} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
+                </button>
+                <span className="text-[14px] font-semibold text-[#3D4A3E]">Add Subtask</span>
+              </div>
+              <div className="px-4 py-4">
+                <input
+                  ref={sheetSubRef}
+                  autoFocus
+                  value={sheetSubtaskText}
+                  onChange={e => setSheetSubtaskText(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && sheetSubtaskText.trim()) { onAddSubtask(task.id, sheetSubtaskText.trim(), Date.now()); closeActionSheet() }
+                    if (e.key === 'Escape') setSheetView('menu')
+                  }}
+                  placeholder="Subtask name…"
+                  className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm"
+                  style={{ borderColor: cat.color + 'BB', fontSize: 16 }}
+                />
+              </div>
+              <div className="px-4 pb-2 flex flex-col gap-2">
+                <button
+                  onClick={() => { if (sheetSubtaskText.trim()) { onAddSubtask(task.id, sheetSubtaskText.trim(), Date.now()); closeActionSheet() } }}
+                  className="w-full py-3.5 rounded-xl text-[15px] font-semibold text-white transition-colors active:opacity-80"
+                  style={{ backgroundColor: cat.color, touchAction: 'manipulation' }}
+                >
+                  Add
+                </button>
+                <button onClick={() => setSheetView('menu')} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  Cancel
+                </button>
+              </div>
+            </>}
           </div>
         </div>,
         document.body
