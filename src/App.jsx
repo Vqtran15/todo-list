@@ -303,6 +303,10 @@ export default function App() {
   const isStarred    = active === 'starred'
   const isSearching  = search.trim().length > 0 && !isSettings
   const cat          = categories.find(c => c.id === active)
+  const prevCat      = categories.find(c => c.id === prevActive)
+  const themeColor   = cat?.color ?? prevCat?.color ?? '#7C9A7E'
+  const themeDark    = cat?.dark  ?? prevCat?.dark  ?? '#4A6B4C'
+  const themeLight   = cat?.light ?? prevCat?.light ?? '#EEF3EC'
   const starredTasks = tasks.filter(t => t.starred && !t.archived)
   const activeTasks  = tasks.filter(t => t.category === active && !t.archived)
   const currentSort  = sortBy[active] || 'manual'
@@ -630,22 +634,16 @@ export default function App() {
                 if (searchOpen) { setSearch(''); setSearchOpen(false) }
                 else { if (isSettings) navTo(prevActive); setSearchOpen(true) }
               }}
-              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
-                searchOpen
-                  ? 'bg-[#7C9A7E22] text-[#4A6B4C]'
-                  : 'text-[#9BAA9C] hover:text-[#637265] hover:bg-[#E5EBE4]'
-              }`}
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all text-[#9BAA9C] hover:text-[#637265] hover:bg-[#E5EBE4]"
+              style={searchOpen ? { backgroundColor: themeColor + '22', color: themeDark } : {}}
               title="Search"
             >
               <Search size={16} />
             </button>
             <button
               onClick={() => navTo('settings')}
-              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
-                isSettings
-                  ? 'bg-[#7C9A7E22] text-[#4A6B4C]'
-                  : 'text-[#9BAA9C] hover:text-[#637265] hover:bg-[#E5EBE4]'
-              }`}
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all text-[#9BAA9C] hover:text-[#637265] hover:bg-[#E5EBE4]"
+              style={isSettings ? { backgroundColor: themeColor + '22', color: themeDark } : {}}
               title="Settings"
             >
               <Settings size={18} />
@@ -682,21 +680,19 @@ export default function App() {
                   if (searchOpen) { setSearch(''); setSearchOpen(false) }
                   else { if (isSettings) navTo(prevActive); setSearchOpen(true) }
                 }}
-                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${
-                  searchOpen
-                    ? 'bg-[#7C9A7E] text-white shadow-sm'
-                    : 'bg-[#EEF3EC] text-[#7C9A7E]'
-                }`}
+                className="w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90"
+                style={searchOpen
+                  ? { backgroundColor: themeColor, color: 'white' }
+                  : { backgroundColor: themeLight, color: themeColor }}
               >
                 <Search size={18} strokeWidth={searchOpen ? 2.2 : 1.75} />
               </button>
               <button
                 onClick={() => navTo('starred')}
-                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 relative ${
-                  isStarred
-                    ? 'bg-[#C4A93A] text-white shadow-sm'
-                    : 'bg-[#EEF3EC] text-[#C4A93A]'
-                }`}
+                className="w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 relative"
+                style={isStarred
+                  ? { backgroundColor: '#C4A93A', color: 'white' }
+                  : { backgroundColor: themeLight, color: themeColor }}
               >
                 <Star size={18} fill={isStarred ? 'currentColor' : 'none'} strokeWidth={isStarred ? 2.2 : 1.75} />
                 {starredTasks.length > 0 && !isStarred && (
@@ -705,11 +701,10 @@ export default function App() {
               </button>
               <button
                 onClick={() => navTo('settings')}
-                className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90 ${
-                  isSettings
-                    ? 'bg-[#7C9A7E] text-white shadow-sm'
-                    : 'bg-[#EEF3EC] text-[#7C9A7E]'
-                }`}
+                className="w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-90"
+                style={isSettings
+                  ? { backgroundColor: themeColor, color: 'white' }
+                  : { backgroundColor: themeLight, color: themeColor }}
               >
                 <Settings size={20} strokeWidth={isSettings ? 2.2 : 1.75} />
               </button>
