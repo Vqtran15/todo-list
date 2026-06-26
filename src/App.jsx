@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useRegisterSW } from 'virtual:pwa-register/react'
 import { supabase } from './supabase.js'
 import AuthScreen from './Auth.jsx'
 import {
@@ -127,6 +128,8 @@ function readLocalTasks() {
 // ── App ────────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
+
   const [categories, setCategories] = useState([])
   const [tasks, setTasks]           = useState([])
   const [loading, setLoading]       = useState(true)
@@ -1097,6 +1100,22 @@ export default function App() {
                 onBlur={e => (e.target.style.borderColor = '#DBE8DA')}
               />
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ════════ UPDATE BANNER ════════ */}
+      {needRefresh && (
+        <div className="fixed top-4 left-4 right-4 md:left-auto md:right-5 md:w-80 z-50 view-enter">
+          <div className="bg-[#3D4A3E] text-white text-[13px] font-medium px-4 py-3 rounded-xl shadow-lg flex items-center justify-between gap-3">
+            <span>New version available</span>
+            <button
+              onClick={() => updateServiceWorker(true)}
+              className="shrink-0 bg-white text-[#3D4A3E] text-[12px] font-semibold px-3 py-1.5 rounded-lg active:opacity-70 transition-opacity"
+              style={{ touchAction: 'manipulation' }}
+            >
+              Update
+            </button>
           </div>
         </div>
       )}
