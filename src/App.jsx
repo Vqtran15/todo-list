@@ -304,9 +304,9 @@ export default function App() {
   const isSearching  = search.trim().length > 0 && !isSettings
   const cat          = categories.find(c => c.id === active)
   const prevCat      = categories.find(c => c.id === prevActive)
-  const themeColor   = cat?.color ?? prevCat?.color ?? '#7C9A7E'
-  const themeDark    = cat?.dark  ?? prevCat?.dark  ?? '#4A6B4C'
-  const themeLight   = cat?.light ?? prevCat?.light ?? '#EEF3EC'
+  const themeColor   = isStarred ? '#C4A93A' : (cat?.color ?? prevCat?.color ?? '#7C9A7E')
+  const themeDark    = isStarred ? '#8A7020' : (cat?.dark  ?? prevCat?.dark  ?? '#4A6B4C')
+  const themeLight   = isStarred ? '#FBF6E3' : (cat?.light ?? prevCat?.light ?? '#EEF3EC')
   const starredTasks = tasks.filter(t => t.starred && !t.archived)
   const activeTasks  = tasks.filter(t => t.category === active && !t.archived)
   const currentSort  = sortBy[active] || 'manual'
