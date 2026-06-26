@@ -868,10 +868,10 @@ export default function App() {
                     <button
                       key={opt.value}
                       onClick={() => updateSort(active, opt.value)}
-                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${
-                        currentSort === opt.value ? 'text-white' : 'bg-[#F0F4EF] text-[#9BAA9C] hover:text-[#637265]'
-                      }`}
-                      style={currentSort === opt.value ? { backgroundColor: cat.color } : {}}
+                      className="px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all"
+                      style={currentSort === opt.value
+                        ? { backgroundColor: cat.color, color: 'white' }
+                        : { backgroundColor: cat.light, color: cat.color }}
                     >
                       {opt.label}
                     </button>
@@ -879,9 +879,10 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => { setSelectMode(p => !p); setSelectedIds(new Set()) }}
-                  className={`text-[12px] font-semibold px-3 py-1 rounded-full transition-all shrink-0 ml-2 ${
-                    selectMode ? 'bg-[#3D4A3E] text-white' : 'text-[#9BAA9C] hover:text-[#637265]'
-                  }`}
+                  className="text-[12px] font-semibold px-3 py-1 rounded-full transition-all shrink-0 ml-2"
+                  style={selectMode
+                    ? { backgroundColor: cat.color, color: 'white' }
+                    : { color: cat.color }}
                 >
                   {selectMode ? 'Cancel' : 'Select'}
                 </button>
