@@ -137,7 +137,7 @@ body { margin: 0; }
 /* Subtask section open/close */
 @keyframes subtask-section-in {
   0%   { opacity: 0; transform: translateY(-6px) scaleY(0.92); }
-  100% { opacity: 1; transform: translateY(0)    scaleY(1); }
+  100% { opacity: 1; transform: none; }
 }
 .subtask-section-in {
   animation: subtask-section-in 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
@@ -156,7 +156,7 @@ body { margin: 0; }
 /* Subtask row enter */
 @keyframes subtask-row-in {
   0%   { opacity: 0; transform: translateX(-8px); }
-  100% { opacity: 1; transform: translateX(0); }
+  100% { opacity: 1; transform: none; }
 }
 .subtask-row-in {
   animation: subtask-row-in 0.16s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;

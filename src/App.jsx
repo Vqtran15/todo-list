@@ -1282,6 +1282,13 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
   useEffect(() => () => { document.getElementById('main-scroll')?.style.setProperty('overflow', '') }, [])
 
   useEffect(() => {
+    if (!actionSheetOpen || sheetView === 'menu') return
+    const ref = sheetView === 'edit' ? sheetEditRef : sheetSubRef
+    const t = setTimeout(() => ref.current?.focus(), 50)
+    return () => clearTimeout(t)
+  }, [actionSheetOpen, sheetView])
+
+  useEffect(() => {
     if (!actionSheetOpen || sheetView === 'menu') { setSheetKbOffset(0); return }
     const update = () => {
       const vv = window.visualViewport
@@ -1484,7 +1491,6 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
               <div className="px-4 py-3">
                 <textarea
                   ref={sheetEditRef}
-                  autoFocus
                   value={sheetEditText}
                   onChange={e => setSheetEditText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Escape') setSheetView('menu') }}
@@ -1518,7 +1524,6 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
               <div className="px-4 py-3">
                 <input
                   ref={sheetSubRef}
-                  autoFocus
                   value={sheetSubtaskText}
                   onChange={e => setSheetSubtaskText(e.target.value)}
                   onKeyDown={e => {
