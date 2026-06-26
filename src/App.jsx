@@ -1594,7 +1594,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   style={{ fontSize: 14, touchAction: 'manipulation' }}
                 >{s.text}</span>
               )}
-              <button onClick={() => handleRemoveSubtask(s.id)} className="opacity-0 group-hover/sub:opacity-100 w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:text-rose-400 transition-all">
+              <button onClick={() => handleRemoveSubtask(s.id)} className="opacity-35 md:opacity-0 md:group-hover/sub:opacity-100 w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:text-rose-400 transition-all" style={{ touchAction: 'manipulation' }}>
                 <X size={14} />
               </button>
             </div>
