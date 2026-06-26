@@ -1228,8 +1228,14 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
   const [editingSubId, setEditingSubId]     = useState(null)
   const [editSubText, setEditSubText]       = useState('')
   const [removingSubIds, setRemovingSubIds] = useState(new Set())
-  const [actionsOpen, setActionsOpen]       = useState(false)
+  const [actionSheetOpen, setActionSheetOpen]     = useState(false)
+  const [actionSheetClosing, setActionSheetClosing] = useState(false)
   const subtaskInputRef = useRef()
+
+  const closeActionSheet = () => {
+    setActionSheetClosing(true)
+    setTimeout(() => { setActionSheetOpen(false); setActionSheetClosing(false) }, 200)
+  }
 
   const subtasks = task.subtasks || []
   const doneSubs = subtasks.filter(s => s.done).length
@@ -1329,35 +1335,14 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
         {!isEditing && !selectMode && (
           <div className="flex items-center gap-0.5 shrink-0">
 
-            {/* ── Mobile: star (collapsed) or 3 actions (expanded) ── */}
-            {!actionsOpen ? (
-              <button onClick={() => onToggleStar(task.id)} className={`md:hidden w-11 h-11 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
-                <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={16} fill={task.starred ? 'currentColor' : 'none'} /></span>
-              </button>
-            ) : (
-              <div className="md:hidden flex items-center gap-0 actions-expand">
-                <button onClick={() => onToggleStar(task.id)} className={`w-11 h-11 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
-                  <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={16} fill={task.starred ? 'currentColor' : 'none'} /></span>
-                </button>
-                {!overlay && (
-                  <button onClick={() => { setSubtasksOpen(true); setAddingSubtask(true); setActionsOpen(false) }} className="w-11 h-11 flex items-center justify-center rounded-lg text-[#C0D0BF] active:text-[#7C9A7E] transition-all">
-                    <ListPlus size={16} />
-                  </button>
-                )}
-                <button onClick={() => { onStartEdit(task.id, task.text); setActionsOpen(false) }} className="w-11 h-11 flex items-center justify-center rounded-lg text-[#C0D0BF] active:text-[#7C9A7E] transition-all">
-                  <Pencil size={16} />
-                </button>
-                <button onClick={() => { setConfirmDelete(true); setActionsOpen(false) }} className="w-11 h-11 flex items-center justify-center rounded-lg text-[#C8BEB4] active:text-rose-400 transition-all">
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            )}
-
-            {/* ── Mobile: ellipsis toggle (always rightmost) ── */}
+            {/* ── Mobile: star + 3-dot trigger ── */}
+            <button onClick={() => onToggleStar(task.id)} className={`md:hidden w-11 h-11 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF]'}`}>
+              <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={16} fill={task.starred ? 'currentColor' : 'none'} /></span>
+            </button>
             {!overlay && (
               <button
-                onClick={() => setActionsOpen(p => !p)}
-                className={`md:hidden w-11 h-11 flex items-center justify-center rounded-lg transition-colors ${actionsOpen ? 'text-[#7C9A7E]' : 'text-[#C0D0BF]'}`}
+                onClick={() => setActionSheetOpen(true)}
+                className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-[#C0D0BF] transition-colors"
               >
                 <MoreHorizontal size={16} />
               </button>
@@ -1385,6 +1370,48 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
         {confirmDelete && <ConfirmModal message={task.text} onConfirm={() => { setConfirmDelete(false); handleDelete() }} onCancel={() => setConfirmDelete(false)} />}
       </div>
+
+      {/* Mobile action sheet */}
+      {(actionSheetOpen || actionSheetClosing) && (
+        <div className="md:hidden fixed inset-0 z-50" onClick={closeActionSheet}>
+          <div className="absolute inset-0 bg-black/25 transition-opacity duration-200" style={{ opacity: actionSheetClosing ? 0 : 1 }} />
+          <div
+            className={`absolute inset-x-0 bottom-0 bg-white rounded-t-2xl shadow-xl ${actionSheetClosing ? 'sheet-down' : 'sheet-up'}`}
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 8px)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-center pt-3 pb-2"><div className="w-10 h-1 rounded-full bg-[#D0DDD0]" /></div>
+            <div className="px-5 pb-3 border-b border-[#F0F4EF]">
+              <p className="text-[13px] text-[#9BAA9C] truncate">{task.text}</p>
+            </div>
+            <div className="py-1">
+              <button onClick={() => { onToggleStar(task.id); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <Star size={18} fill={task.starred ? 'currentColor' : 'none'} style={{ color: task.starred ? '#C4A93A' : '#7C9A7E' }} />
+                <span className="text-[15px] text-[#3D4A3E]">{task.starred ? 'Unstar' : 'Star'}</span>
+              </button>
+              {!overlay && (
+                <button onClick={() => { setSubtasksOpen(true); setAddingSubtask(true); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <ListPlus size={18} style={{ color: '#7C9A7E' }} />
+                  <span className="text-[15px] text-[#3D4A3E]">Add Subtask</span>
+                </button>
+              )}
+              <button onClick={() => { onStartEdit(task.id, task.text); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <Pencil size={18} style={{ color: '#7C9A7E' }} />
+                <span className="text-[15px] text-[#3D4A3E]">Edit</span>
+              </button>
+              <button onClick={() => { setConfirmDelete(true); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-rose-50 transition-colors" style={{ touchAction: 'manipulation' }}>
+                <Trash2 size={18} className="text-rose-400" />
+                <span className="text-[15px] text-rose-400">Delete</span>
+              </button>
+            </div>
+            <div className="px-4 pt-1 pb-2">
+              <button onClick={closeActionSheet} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Subtasks */}
       {(subtasksOpen || subtasksClosing) && !overlay && (
