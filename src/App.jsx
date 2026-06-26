@@ -1259,9 +1259,11 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
   const [actionSheetOpen, setActionSheetOpen]       = useState(false)
   const [actionSheetClosing, setActionSheetClosing] = useState(false)
   const [sheetView, setSheetView]                   = useState('menu')
+  const [sheetViewDir, setSheetViewDir]             = useState('forward')
   const [sheetEditText, setSheetEditText]           = useState('')
   const [sheetSubtaskText, setSheetSubtaskText]     = useState('')
   const [sheetKbOffset, setSheetKbOffset]           = useState(0)
+  const [pendingDeleteSubId, setPendingDeleteSubId] = useState(null)
   const subtaskInputRef = useRef()
   const sheetEditRef    = useRef()
   const sheetSubRef     = useRef()
@@ -1276,8 +1278,10 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
     const main = document.getElementById('main-scroll')
     if (main) main.style.overflow = ''
     setActionSheetClosing(true)
-    setTimeout(() => { setActionSheetOpen(false); setActionSheetClosing(false); setSheetView('menu') }, 200)
+    setTimeout(() => { setActionSheetOpen(false); setActionSheetClosing(false); setSheetView('menu'); setPendingDeleteSubId(null) }, 200)
   }
+  const navigateSheet = (view) => { setSheetViewDir('forward'); setSheetView(view) }
+  const backToMenu    = () => { setSheetViewDir('back'); setSheetView('menu'); setPendingDeleteSubId(null) }
 
   useEffect(() => () => { document.getElementById('main-scroll')?.style.setProperty('overflow', '') }, [])
 
@@ -1453,6 +1457,9 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2"><div className="w-10 h-1 rounded-full bg-[#D0DDD0]" /></div>
 
+            {/* Animated view container */}
+            <div key={sheetView} className={`overflow-hidden ${sheetViewDir === 'forward' ? 'sheet-view-right' : 'sheet-view-left'}`}>
+
             {/* ── Menu view ── */}
             {sheetView === 'menu' && <>
               <div className="px-5 pb-3 border-b border-[#F0F4EF]">
@@ -1464,18 +1471,18 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   <span className="text-[15px] text-[#3D4A3E]">{task.starred ? 'Unstar' : 'Star'}</span>
                 </button>
                 {!overlay && (
-                  <button onClick={() => { setSheetSubtaskText(''); setSheetView('subtask') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <button onClick={() => { setSheetSubtaskText(''); navigateSheet('subtask') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
                     <ListPlus size={18} style={{ color: '#7C9A7E' }} />
                     <span className="text-[15px] text-[#3D4A3E]">Add Subtask</span>
                   </button>
                 )}
                 {!overlay && subtasks.length > 0 && (
-                  <button onClick={() => setSheetView('subtasks')} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <button onClick={() => navigateSheet('subtasks')} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
                     <ListChecks size={18} style={{ color: '#7C9A7E' }} />
                     <span className="text-[15px] text-[#3D4A3E]">Subtasks ({subtasks.length})</span>
                   </button>
                 )}
-                <button onClick={() => { setSheetEditText(task.text); setSheetView('edit') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <button onClick={() => { setSheetEditText(task.text); navigateSheet('edit') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
                   <Pencil size={18} style={{ color: '#7C9A7E' }} />
                   <span className="text-[15px] text-[#3D4A3E]">Edit</span>
                 </button>
@@ -1494,7 +1501,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
             {/* ── Edit view ── */}
             {sheetView === 'edit' && <>
               <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
-                <button onClick={() => setSheetView('menu')} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
                   <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
                 </button>
                 <span className="text-[14px] font-semibold text-[#3D4A3E]">Edit Task</span>
@@ -1504,7 +1511,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   ref={sheetEditRef}
                   value={sheetEditText}
                   onChange={e => setSheetEditText(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Escape') setSheetView('menu') }}
+                  onKeyDown={e => { if (e.key === 'Escape') backToMenu() }}
                   rows={2}
                   className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] outline-none resize-none shadow-sm"
                   style={{ borderColor: cat.color + 'BB', fontSize: 16 }}
@@ -1518,7 +1525,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 >
                   Save
                 </button>
-                <button onClick={() => setSheetView('menu')} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
                   Cancel
                 </button>
               </div>
@@ -1527,7 +1534,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
             {/* ── Add Subtask view ── */}
             {sheetView === 'subtask' && <>
               <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
-                <button onClick={() => setSheetView('menu')} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
                   <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
                 </button>
                 <span className="text-[14px] font-semibold text-[#3D4A3E]">Add Subtask</span>
@@ -1539,7 +1546,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   onChange={e => setSheetSubtaskText(e.target.value)}
                   onKeyDown={e => {
                     if (e.key === 'Enter' && sheetSubtaskText.trim()) { onAddSubtask(task.id, sheetSubtaskText.trim(), Date.now()); closeActionSheet() }
-                    if (e.key === 'Escape') setSheetView('menu')
+                    if (e.key === 'Escape') backToMenu()
                   }}
                   placeholder="Subtask name…"
                   className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm"
@@ -1554,7 +1561,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 >
                   Add
                 </button>
-                <button onClick={() => setSheetView('menu')} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
                   Cancel
                 </button>
               </div>
@@ -1563,7 +1570,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
             {/* ── Manage Subtasks view ── */}
             {sheetView === 'subtasks' && <>
               <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
-                <button onClick={() => setSheetView('menu')} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
                   <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
                 </button>
                 <span className="text-[14px] font-semibold text-[#3D4A3E]">Subtasks</span>
@@ -1576,7 +1583,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                     </div>
                     <span className={`flex-1 text-[14px] leading-snug ${s.done ? 'line-through text-[#9BAA9C]' : 'text-[#3D4A3E]'}`}>{s.text}</span>
                     <button
-                      onClick={() => { onRemoveSubtask(task.id, s.id); if (subtasks.length === 1) setSheetView('menu') }}
+                      onClick={() => setPendingDeleteSubId(s.id)}
                       className="w-9 h-9 flex items-center justify-center rounded-lg active:bg-rose-50 transition-colors"
                       style={{ touchAction: 'manipulation' }}
                     >
@@ -1586,11 +1593,24 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 ))}
               </div>
               <div className="px-4 pt-1 pb-2">
-                <button onClick={() => setSheetView('menu')} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
-                  Done
-                </button>
+                {pendingDeleteSubId ? (() => {
+                  const sub = subtasks.find(s => s.id === pendingDeleteSubId)
+                  return (
+                    <div className="view-enter">
+                      <p className="text-[13px] text-[#9BAA9C] text-center mb-2.5 px-1 truncate">Remove "{sub?.text}"?</p>
+                      <div className="flex gap-2">
+                        <button onClick={() => setPendingDeleteSubId(null)} className="flex-1 py-3 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>Cancel</button>
+                        <button onClick={() => { onRemoveSubtask(task.id, pendingDeleteSubId); setPendingDeleteSubId(null); if (subtasks.length === 1) backToMenu() }} className="flex-1 py-3 rounded-xl bg-rose-50 text-[15px] font-semibold text-rose-500 active:bg-rose-100 transition-colors" style={{ touchAction: 'manipulation' }}>Remove</button>
+                      </div>
+                    </div>
+                  )
+                })() : (
+                  <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>Done</button>
+                )}
               </div>
             </>}
+
+            </div>{/* end animated view container */}
           </div>
         </div>,
         document.body
