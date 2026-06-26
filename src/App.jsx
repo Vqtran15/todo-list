@@ -128,7 +128,15 @@ function readLocalTasks() {
 // ── App ────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW()
+  const swReg = useRef(null)
+  const { needRefresh: [needRefresh], updateServiceWorker } = useRegisterSW({
+    onRegistered(r) { swReg.current = r },
+  })
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') swReg.current?.update() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [])
 
   const [categories, setCategories] = useState([])
   const [tasks, setTasks]           = useState([])
