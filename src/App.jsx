@@ -310,8 +310,7 @@ export default function App() {
     const t = [...activeTasks]
     if (currentSort === 'date-desc')  return t.sort((a, b) => b.id - a.id)
     if (currentSort === 'date-asc')   return t.sort((a, b) => a.id - b.id)
-    if (currentSort === 'alpha-asc')  return t.sort((a, b) => a.text.localeCompare(b.text))
-    if (currentSort === 'alpha-desc') return t.sort((a, b) => b.text.localeCompare(a.text))
+    if (currentSort === 'starred')    return t.sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0))
     return t
   })()
   const searchResults = isSearching
@@ -869,8 +868,7 @@ export default function App() {
                     { value: 'manual',     label: 'Manual' },
                     { value: 'date-desc',  label: 'Newest' },
                     { value: 'date-asc',   label: 'Oldest' },
-                    { value: 'alpha-asc',  label: 'A → Z' },
-                    { value: 'alpha-desc', label: 'Z → A' },
+                    { value: 'starred',    label: 'Starred' },
                   ].map(opt => (
                     <button
                       key={opt.value}
@@ -1376,6 +1374,11 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
         }`}
         style={isSelected ? { borderColor: cat.color } : undefined}
       >
+        {/* Starred accent bar */}
+        {task.starred && !completing && !deleting && (
+          <div className="absolute left-0 top-[3px] bottom-[3px] w-[3px] rounded-full" style={{ backgroundColor: '#C4A93A' }} />
+        )}
+
         {/* Select checkbox */}
         {selectMode && (
           <button onClick={() => onToggleSelect(task.id)} className="shrink-0 -m-1 p-1 transition-all active:scale-90 checkbox-in">
