@@ -1755,62 +1755,177 @@ function ArchiveRow({ task, cat, onRestore, onDelete, clearing = false, clearing
 
 // ── Search Row ─────────────────────────────────────────────────────────────
 
-function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, onToggleStar }) {
-  const [unstarring, setUnstarring] = useState(false)
+function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, onToggleStar, onRenameTask }) {
+  const [unstarring, setUnstarring]               = useState(false)
+  const [confirmDelete, setConfirmDelete]         = useState(false)
+  const [actionSheetOpen, setActionSheetOpen]     = useState(false)
+  const [actionSheetClosing, setActionSheetClosing] = useState(false)
+  const [sheetView, setSheetView]                 = useState('menu')
+  const [sheetViewDir, setSheetViewDir]           = useState('forward')
+  const [sheetEditText, setSheetEditText]         = useState('')
+  const [sheetKbOffset, setSheetKbOffset]         = useState(0)
+  const sheetEditRef = useRef()
 
-  const handleToggleStar = () => {
-    if (task.starred) {
-      setUnstarring(true)
-      setTimeout(() => onToggleStar(task.id), 200)
-    } else {
-      onToggleStar(task.id)
+  const openActionSheet  = () => { setSheetView('menu'); setActionSheetOpen(true) }
+  const closeActionSheet = () => {
+    setActionSheetClosing(true)
+    setTimeout(() => { setActionSheetOpen(false); setActionSheetClosing(false); setSheetView('menu') }, 200)
+  }
+  const navigateSheet = (view) => { setSheetViewDir('forward'); setSheetView(view) }
+  const backToMenu    = () => { setSheetViewDir('back'); setSheetView('menu') }
+
+  useEffect(() => {
+    if (!actionSheetOpen || sheetView !== 'edit') return
+    const t = setTimeout(() => sheetEditRef.current?.focus(), 50)
+    return () => clearTimeout(t)
+  }, [actionSheetOpen, sheetView])
+
+  useEffect(() => {
+    if (!actionSheetOpen || sheetView !== 'edit') { setSheetKbOffset(0); return }
+    const update = () => {
+      const vv = window.visualViewport
+      setSheetKbOffset(vv ? Math.max(0, window.innerHeight - vv.offsetTop - vv.height) : 0)
     }
+    window.visualViewport?.addEventListener('resize', update)
+    window.visualViewport?.addEventListener('scroll', update)
+    update()
+    return () => {
+      window.visualViewport?.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('scroll', update)
+      setSheetKbOffset(0)
+    }
+  }, [actionSheetOpen, sheetView])
+
+  const toggleStarWithAnim = () => {
+    if (task.starred) { setUnstarring(true); setTimeout(() => onToggleStar(task.id), 200) }
+    else { onToggleStar(task.id) }
   }
 
   return (
-    <div className={`group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border border-[#E0EAE0] shadow-sm ${unstarring ? 'task-unstarring' : ''}`}>
-      <button onClick={() => onArchive(task.id)} className="shrink-0 -m-1 p-1 rounded-full active:scale-90 transition-transform">
-        <div className="w-[20px] h-[20px] rounded-full border-2" style={{ borderColor: '#C0D0BF' }} />
-      </button>
-      {isEditing ? (
-        <input
-          autoFocus value={editText}
-          onChange={e => onEditChange(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') onSaveEdit(task.id); if (e.key === 'Escape') onCancelEdit() }}
-          onBlur={() => onSaveEdit(task.id)}
-          className="flex-1 text-[#3D4A3E] outline-none bg-transparent border-b pb-px"
-          style={{ borderColor: cat.color, fontSize: 16 }}
-        />
-      ) : (
-        <span className="flex-1 text-[#3D4A3E] select-none leading-snug" style={{ fontSize: 14 }}>{task.text}</span>
-      )}
-      <div className="flex items-center gap-1 shrink-0">
-        <span className="text-[11px] font-semibold px-2 py-1 rounded-full flex items-center gap-1" style={{ backgroundColor: cat.light, color: cat.dark }}>
-          <CatIcon cat={cat} size={10} />
-          {cat.name}
-        </span>
-        {!isEditing && (
-          <div className={`flex items-center gap-0.5 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'}`}>
-            <button
-              onClick={handleToggleStar}
-              className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
-                task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'
-              }`}
-            >
-              <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}>
-                <Star size={14} fill={task.starred ? 'currentColor' : 'none'} />
-              </span>
-            </button>
-            <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
-              <Pencil size={14} />
-            </button>
-            <button onClick={() => onDelete(task.id)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
-              <Trash2 size={15} />
-            </button>
-          </div>
+    <>
+      <div className={`group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border border-[#E0EAE0] shadow-sm ${unstarring ? 'task-unstarring' : ''}`}>
+        <button onClick={() => onArchive(task.id)} className="shrink-0 -m-1 p-1 rounded-full active:scale-90 transition-transform" style={{ touchAction: 'manipulation' }}>
+          <div className="w-[20px] h-[20px] rounded-full border-2" style={{ borderColor: '#C0D0BF' }} />
+        </button>
+        {isEditing ? (
+          <input
+            autoFocus value={editText}
+            onChange={e => onEditChange(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') onSaveEdit(task.id); if (e.key === 'Escape') onCancelEdit() }}
+            onBlur={() => onSaveEdit(task.id)}
+            className="flex-1 text-[#3D4A3E] outline-none bg-transparent border-b pb-px"
+            style={{ borderColor: cat.color, fontSize: 16 }}
+          />
+        ) : (
+          <span className="flex-1 text-[#3D4A3E] select-none leading-snug" style={{ fontSize: 14 }}>{task.text}</span>
         )}
+        <div className="flex items-center gap-1 shrink-0">
+          <span className="text-[11px] font-semibold px-2 py-1 rounded-full flex items-center gap-1" style={{ backgroundColor: cat.light, color: cat.dark }}>
+            <CatIcon cat={cat} size={10} />
+            {cat.name}
+          </span>
+          {!isEditing && (
+            <>
+              {/* Mobile: 3-dot trigger */}
+              <button onClick={openActionSheet} className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-[#C0D0BF] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <MoreHorizontal size={16} />
+              </button>
+              {/* Desktop: full controls */}
+              <div className={`hidden md:flex items-center gap-0.5 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                <button onClick={toggleStarWithAnim} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
+                  <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}>
+                    <Star size={14} fill={task.starred ? 'currentColor' : 'none'} />
+                  </span>
+                </button>
+                <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
+                  <Pencil size={14} />
+                </button>
+                <button onClick={() => setConfirmDelete(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+        {confirmDelete && <ConfirmModal message={task.text} onConfirm={() => { setConfirmDelete(false); onDelete(task.id) }} onCancel={() => setConfirmDelete(false)} />}
       </div>
-    </div>
+
+      {/* Mobile action sheet */}
+      {(actionSheetOpen || actionSheetClosing) && createPortal(
+        <div className="md:hidden fixed inset-0 z-50" onClick={sheetView === 'menu' ? closeActionSheet : undefined}>
+          <div className="absolute inset-0 bg-black/25 transition-opacity duration-200" style={{ opacity: actionSheetClosing ? 0 : 1 }} />
+          <div
+            className={`absolute inset-x-0 bg-white rounded-t-2xl shadow-xl overflow-y-auto ${actionSheetClosing ? 'sheet-down' : 'sheet-up'}`}
+            style={{
+              bottom: sheetKbOffset,
+              maxHeight: `calc(100vh - ${sheetKbOffset + 24}px)`,
+              transition: 'bottom 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-center pt-3 pb-2"><div className="w-10 h-1 rounded-full bg-[#D0DDD0]" /></div>
+
+            <div key={sheetView} className={`overflow-hidden ${sheetViewDir === 'forward' ? 'sheet-view-right' : 'sheet-view-left'}`}>
+
+              {/* Menu */}
+              {sheetView === 'menu' && <>
+                <div className="px-5 pb-3 border-b border-[#F0F4EF]">
+                  <p className="text-[13px] text-[#9BAA9C] truncate">{task.text}</p>
+                </div>
+                <div className="py-1">
+                  <button onClick={() => { toggleStarWithAnim(); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                    <Star size={18} fill={task.starred ? 'currentColor' : 'none'} style={{ color: task.starred ? '#C4A93A' : '#7C9A7E' }} />
+                    <span className="text-[15px] text-[#3D4A3E]">{task.starred ? 'Unstar' : 'Star'}</span>
+                  </button>
+                  <button onClick={() => { setSheetEditText(task.text); navigateSheet('edit') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                    <Pencil size={18} style={{ color: '#7C9A7E' }} />
+                    <span className="text-[15px] text-[#3D4A3E]">Edit</span>
+                  </button>
+                  <button onClick={() => { setConfirmDelete(true); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-rose-50 transition-colors" style={{ touchAction: 'manipulation' }}>
+                    <Trash2 size={18} className="text-rose-400" />
+                    <span className="text-[15px] text-rose-400">Delete</span>
+                  </button>
+                </div>
+                <div className="px-4 pt-1" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
+                  <button onClick={closeActionSheet} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>Cancel</button>
+                </div>
+              </>}
+
+              {/* Edit */}
+              {sheetView === 'edit' && <>
+                <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
+                  <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+                    <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
+                  </button>
+                  <span className="text-[14px] font-semibold text-[#3D4A3E]">Edit Task</span>
+                </div>
+                <div className="px-4 py-3">
+                  <textarea
+                    ref={sheetEditRef}
+                    value={sheetEditText}
+                    onChange={e => setSheetEditText(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Escape') backToMenu() }}
+                    rows={2}
+                    className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] outline-none resize-none shadow-sm"
+                    style={{ borderColor: cat.color + 'BB', fontSize: 16 }}
+                  />
+                </div>
+                <div className="px-4 flex flex-col gap-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
+                  <button
+                    onClick={() => { if (sheetEditText.trim()) { onRenameTask(task.id, sheetEditText.trim()); closeActionSheet() } }}
+                    className="w-full py-3.5 rounded-xl text-[15px] font-semibold text-white transition-colors active:opacity-80"
+                    style={{ backgroundColor: cat.color, touchAction: 'manipulation' }}
+                  >Save</button>
+                  <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>Cancel</button>
+                </div>
+              </>}
+
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   )
 }
 
