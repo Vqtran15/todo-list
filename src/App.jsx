@@ -1372,7 +1372,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
           : isSelected ? 'border-[#7C9A7E]'
           : 'border-[#E0EAE0] md:hover:border-[#C8DCC8] md:hover:shadow'
         }`}
-        style={isSelected ? { borderColor: cat.color } : undefined}
+        style={isSelected ? { borderColor: cat.color } : task.starred && !completing && !deleting ? { backgroundColor: '#FEFBF0' } : undefined}
       >
         {/* Starred accent bar */}
         {task.starred && !completing && !deleting && (
