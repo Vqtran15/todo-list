@@ -145,6 +145,8 @@ export default function App() {
   const [clearingIds, setClearingIds] = useState(new Set())
   const clearingOrderMap              = useRef(new Map())
   const inputRef = useRef()
+  const textRef = useRef('')
+  const mobileFormRef = useRef()
   const [user, setUser]             = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [toast, setToast]           = useState(null)
@@ -165,6 +167,7 @@ export default function App() {
   }
 
   useEffect(() => { setCompletedOpen(false); setCompletedClosing(false) }, [active])
+  useEffect(() => { textRef.current = text }, [text])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -221,9 +224,13 @@ export default function App() {
       const vv = window.visualViewport
       const next = vv ? Math.max(0, window.innerHeight - vv.height) : 0
       if (prevKbOffset.current > 0 && next === 0) {
-        // Keyboard dismissed without submitting — close the sheet
-        setMobileAddOpen(false)
-        setText('')
+        if (textRef.current.trim()) {
+          // Keyboard dismissed with text — submit the task
+          mobileFormRef.current?.requestSubmit()
+        } else {
+          setMobileAddOpen(false)
+          setText('')
+        }
       }
       prevKbOffset.current = next
       setKbOffset(next)
@@ -1068,7 +1075,7 @@ export default function App() {
             </div>
 
             {/* Input */}
-            <form onSubmit={e => { add(e); if (text.trim()) setMobileAddOpen(false) }} className="px-4">
+            <form ref={mobileFormRef} onSubmit={e => { add(e); if (text.trim()) setMobileAddOpen(false) }} className="px-4">
               <input
                 autoFocus
                 value={text}
