@@ -3,18 +3,25 @@ import { supabase } from './supabase.js'
 import { ClipboardList } from 'lucide-react'
 
 export default function AuthScreen() {
-  const [mode, setMode]         = useState('signin')
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError]       = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [sent, setSent]         = useState(false)
+  const [mode, setMode]                   = useState('signin')
+  const [email, setEmail]                 = useState('')
+  const [password, setPassword]           = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [error, setError]                 = useState('')
+  const [loading, setLoading]             = useState(false)
+  const [sent, setSent]                   = useState(false)
 
-  const switchMode = m => { setMode(m); setError('') }
+  const switchMode = m => { setMode(m); setError(''); setConfirmPassword('') }
 
   const handle = async e => {
     e.preventDefault()
     setError('')
+
+    if (mode === 'signup' && password !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
     setLoading(true)
 
     if (mode === 'signup') {
@@ -113,6 +120,20 @@ export default function AuthScreen() {
                 <p className="text-[11px] text-[#B5C4B6] mt-1.5">Minimum 6 characters</p>
               )}
             </div>
+
+            {isSignUp && (
+              <div>
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9BAA9C] mb-1.5">Confirm Password</label>
+                <input
+                  type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••" required autoComplete="new-password"
+                  className="w-full px-4 py-3 rounded-xl border border-[#E0EAE0] text-[#3D4A3E] placeholder-[#C0CCC0] outline-none transition-all"
+                  style={{ fontSize: 16 }}
+                  onFocus={e => (e.target.style.borderColor = '#7C9A7EBB')}
+                  onBlur={e  => (e.target.style.borderColor = '#E0EAE0')}
+                />
+              </div>
+            )}
 
             {error && (
               <p className="text-[12px] text-rose-500 bg-rose-50 border border-rose-100 px-3 py-2.5 rounded-xl">{error}</p>
