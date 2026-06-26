@@ -22,7 +22,7 @@ import {
   Sparkles, Bike, Baby, Pill, PawPrint, Sunrise, Wallet, Globe,
   // UI icons
   Plus, Search, Pencil, X, GripVertical, Settings, ChevronDown,
-  Square, SquareCheck, ListPlus, Trash2, MoreHorizontal,
+  Square, SquareCheck, ListPlus, ListChecks, Trash2, MoreHorizontal,
 } from 'lucide-react'
 
 // ── Icon registry ──────────────────────────────────────────────────────────
@@ -1282,14 +1282,14 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
   useEffect(() => () => { document.getElementById('main-scroll')?.style.setProperty('overflow', '') }, [])
 
   useEffect(() => {
-    if (!actionSheetOpen || sheetView === 'menu') return
+    if (!actionSheetOpen || sheetView === 'menu' || sheetView === 'subtasks') return
     const ref = sheetView === 'edit' ? sheetEditRef : sheetSubRef
     const t = setTimeout(() => ref.current?.focus(), 50)
     return () => clearTimeout(t)
   }, [actionSheetOpen, sheetView])
 
   useEffect(() => {
-    if (!actionSheetOpen || sheetView === 'menu') { setSheetKbOffset(0); return }
+    if (!actionSheetOpen || sheetView === 'menu' || sheetView === 'subtasks') { setSheetKbOffset(0); return }
     const update = () => {
       const vv = window.visualViewport
       setSheetKbOffset(vv ? Math.max(0, window.innerHeight - vv.offsetTop - vv.height) : 0)
@@ -1469,6 +1469,12 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                     <span className="text-[15px] text-[#3D4A3E]">Add Subtask</span>
                   </button>
                 )}
+                {!overlay && subtasks.length > 0 && (
+                  <button onClick={() => setSheetView('subtasks')} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                    <ListChecks size={18} style={{ color: '#7C9A7E' }} />
+                    <span className="text-[15px] text-[#3D4A3E]">Subtasks ({subtasks.length})</span>
+                  </button>
+                )}
                 <button onClick={() => { setSheetEditText(task.text); setSheetView('edit') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
                   <Pencil size={18} style={{ color: '#7C9A7E' }} />
                   <span className="text-[15px] text-[#3D4A3E]">Edit</span>
@@ -1553,6 +1559,38 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 </button>
               </div>
             </>}
+
+            {/* ── Manage Subtasks view ── */}
+            {sheetView === 'subtasks' && <>
+              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
+                <button onClick={() => setSheetView('menu')} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
+                </button>
+                <span className="text-[14px] font-semibold text-[#3D4A3E]">Subtasks</span>
+              </div>
+              <div className="py-1">
+                {subtasks.map(s => (
+                  <div key={s.id} className="flex items-center gap-3 px-5 py-3">
+                    <div className="w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center" style={{ borderColor: s.done ? cat.color : '#C0D0BF', backgroundColor: s.done ? cat.color : 'transparent' }}>
+                      {s.done && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                    </div>
+                    <span className={`flex-1 text-[14px] leading-snug ${s.done ? 'line-through text-[#9BAA9C]' : 'text-[#3D4A3E]'}`}>{s.text}</span>
+                    <button
+                      onClick={() => { onRemoveSubtask(task.id, s.id); if (subtasks.length === 1) setSheetView('menu') }}
+                      className="w-9 h-9 flex items-center justify-center rounded-lg active:bg-rose-50 transition-colors"
+                      style={{ touchAction: 'manipulation' }}
+                    >
+                      <Trash2 size={15} className="text-rose-400" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="px-4 pt-1 pb-2">
+                <button onClick={() => setSheetView('menu')} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  Done
+                </button>
+              </div>
+            </>}
           </div>
         </div>,
         document.body
@@ -1594,7 +1632,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   style={{ fontSize: 14, touchAction: 'manipulation' }}
                 >{s.text}</span>
               )}
-              <button onClick={() => handleRemoveSubtask(s.id)} className="opacity-35 md:opacity-0 md:group-hover/sub:opacity-100 w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:text-rose-400 transition-all" style={{ touchAction: 'manipulation' }}>
+              <button onClick={() => handleRemoveSubtask(s.id)} className="hidden md:flex md:opacity-0 md:group-hover/sub:opacity-100 md:w-8 md:h-8 items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:text-rose-400 transition-all" style={{ touchAction: 'manipulation' }}>
                 <X size={14} />
               </button>
             </div>
