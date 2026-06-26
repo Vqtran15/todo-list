@@ -1292,11 +1292,16 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
     if (!actionSheetOpen || sheetView === 'menu') { setSheetKbOffset(0); return }
     const update = () => {
       const vv = window.visualViewport
-      setSheetKbOffset(vv ? Math.max(0, window.innerHeight - vv.height) : 0)
+      setSheetKbOffset(vv ? Math.max(0, window.innerHeight - vv.offsetTop - vv.height) : 0)
     }
     window.visualViewport?.addEventListener('resize', update)
+    window.visualViewport?.addEventListener('scroll', update)
     update()
-    return () => { window.visualViewport?.removeEventListener('resize', update); setSheetKbOffset(0) }
+    return () => {
+      window.visualViewport?.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('scroll', update)
+      setSheetKbOffset(0)
+    }
   }, [actionSheetOpen, sheetView])
 
   const subtasks = task.subtasks || []
@@ -1441,7 +1446,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
               bottom: sheetKbOffset,
               maxHeight: `calc(100vh - ${sheetKbOffset + 24}px)`,
               paddingBottom: sheetKbOffset > 0 ? '12px' : 'calc(env(safe-area-inset-bottom) + 8px)',
-              transition: sheetKbOffset > 0 ? 'bottom 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : undefined,
+              transition: 'bottom 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
             }}
             onClick={e => e.stopPropagation()}
           >
