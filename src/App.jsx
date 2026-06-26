@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from './supabase.js'
 import AuthScreen from './Auth.jsx'
 import {
@@ -1371,8 +1372,8 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
         {confirmDelete && <ConfirmModal message={task.text} onConfirm={() => { setConfirmDelete(false); handleDelete() }} onCancel={() => setConfirmDelete(false)} />}
       </div>
 
-      {/* Mobile action sheet */}
-      {(actionSheetOpen || actionSheetClosing) && (
+      {/* Mobile action sheet — rendered in a portal to escape any transformed ancestor */}
+      {(actionSheetOpen || actionSheetClosing) && createPortal(
         <div className="md:hidden fixed inset-0 z-50" onClick={closeActionSheet}>
           <div className="absolute inset-0 bg-black/25 transition-opacity duration-200" style={{ opacity: actionSheetClosing ? 0 : 1 }} />
           <div
@@ -1410,7 +1411,8 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Subtasks */}
