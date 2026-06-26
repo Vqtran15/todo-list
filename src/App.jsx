@@ -645,7 +645,7 @@ export default function App() {
       </aside>
 
       {/* ════════ MAIN CONTENT ════════ */}
-      <main className="flex-1 overflow-y-auto">
+      <main id="main-scroll" className="flex-1 overflow-y-auto">
         <div key={viewKey} className={`${navDir === 'right' ? 'slide-from-right' : navDir === 'left' ? 'slide-from-left' : 'view-enter'} px-4 md:px-10 pt-5 md:pt-8 pb-36 md:pb-10 max-w-xl mx-auto md:mx-0`}>
 
           {/* Mobile header */}
@@ -1247,11 +1247,20 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
   const sheetEditRef    = useRef()
   const sheetSubRef     = useRef()
 
-  const openActionSheet = () => { setSheetView('menu'); setActionSheetOpen(true) }
+  const openActionSheet = () => {
+    const main = document.getElementById('main-scroll')
+    if (main) main.style.overflow = 'hidden'
+    setSheetView('menu')
+    setActionSheetOpen(true)
+  }
   const closeActionSheet = () => {
+    const main = document.getElementById('main-scroll')
+    if (main) main.style.overflow = ''
     setActionSheetClosing(true)
     setTimeout(() => { setActionSheetOpen(false); setActionSheetClosing(false); setSheetView('menu') }, 200)
   }
+
+  useEffect(() => () => { document.getElementById('main-scroll')?.style.setProperty('overflow', '') }, [])
 
   useEffect(() => {
     if (!actionSheetOpen || sheetView === 'menu') { setSheetKbOffset(0); return }
@@ -1553,7 +1562,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 <span
                   onDoubleClick={() => { setEditingSubId(s.id); setEditSubText(s.text) }}
                   className={`flex-1 leading-snug cursor-text ${s.done ? 'line-through text-[#9BAA9C]' : 'text-[#3D4A3E]'}`}
-                  style={{ fontSize: 14 }}
+                  style={{ fontSize: 14, touchAction: 'manipulation' }}
                 >{s.text}</span>
               )}
               <button onClick={() => handleRemoveSubtask(s.id)} className="opacity-0 group-hover/sub:opacity-100 w-10 h-10 md:w-8 md:h-8 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:text-rose-400 transition-all">
