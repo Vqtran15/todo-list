@@ -110,6 +110,14 @@ body { margin: 0; }
 }
 .star-celebrate { animation: star-celebrate 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
 
+/* Unstar fade on task row */
+@keyframes star-fade {
+  0%   { opacity: 0.9; transform: scale(1) rotate(0deg); }
+  40%  { opacity: 0.6; transform: scale(0.75) rotate(-12deg); }
+  100% { opacity: 0;   transform: scale(0.4) rotate(-20deg); }
+}
+.star-fade { animation: star-fade 0.45s cubic-bezier(0.4, 0, 0.6, 1) forwards; }
+
 /* Star button bounce when activated */
 @keyframes star-pop {
   0%   { transform: scale(1); }

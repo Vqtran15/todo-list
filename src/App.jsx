@@ -1265,13 +1265,19 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
   const [editSubText, setEditSubText]       = useState('')
   const [removingSubIds, setRemovingSubIds] = useState(new Set())
   const [starAnim, setStarAnim]             = useState(false)
+  const [unstarAnim, setUnstarAnim]         = useState(false)
   const prevStarredRef = useRef(task.starred)
   useEffect(() => {
     if (task.starred !== prevStarredRef.current) {
+      const wasStarred = prevStarredRef.current
       prevStarredRef.current = task.starred
       if (task.starred) {
         setStarAnim(true)
         const t = setTimeout(() => setStarAnim(false), 700)
+        return () => clearTimeout(t)
+      } else if (wasStarred) {
+        setUnstarAnim(true)
+        const t = setTimeout(() => setUnstarAnim(false), 500)
         return () => clearTimeout(t)
       }
     }
@@ -1458,7 +1464,8 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
         )}
 
         {confirmDelete && <ConfirmModal message={task.text} onConfirm={() => { setConfirmDelete(false); handleDelete() }} onCancel={() => setConfirmDelete(false)} />}
-        {starAnim && <Star size={22} fill="#C4A93A" className="star-celebrate pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 z-10" style={{ color: '#C4A93A' }} />}
+        {starAnim   && <Star size={22} fill="#C4A93A"  className="star-celebrate pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 z-10" style={{ color: '#C4A93A' }} />}
+        {unstarAnim && <Star size={22} fill="#C4A93A"  className="star-fade     pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 z-10" style={{ color: '#C4A93A' }} />}
       </div>
 
       {/* Mobile action sheet — rendered in a portal to escape any transformed ancestor */}
@@ -1512,7 +1519,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   <span className="text-[15px] text-rose-400">Delete</span>
                 </button>
               </div>
-              <div className="px-4 pt-1 pb-2">
+              <div className="px-4 pt-1" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
                 <button onClick={closeActionSheet} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
                   Cancel
                 </button>
@@ -1538,7 +1545,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   style={{ borderColor: cat.color + 'BB', fontSize: 16 }}
                 />
               </div>
-              <div className="px-4 pb-2 flex flex-col gap-2">
+              <div className="px-4 flex flex-col gap-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
                 <button
                   onClick={() => { if (sheetEditText.trim()) { onRenameTask(task.id, sheetEditText.trim()); closeActionSheet() } }}
                   className="w-full py-3.5 rounded-xl text-[15px] font-semibold text-white transition-colors active:opacity-80"
@@ -1574,7 +1581,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   style={{ borderColor: cat.color + 'BB', fontSize: 16 }}
                 />
               </div>
-              <div className="px-4 pb-2 flex flex-col gap-2">
+              <div className="px-4 flex flex-col gap-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
                 <button
                   onClick={() => { if (sheetSubtaskText.trim()) { onAddSubtask(task.id, sheetSubtaskText.trim(), Date.now()); closeActionSheet() } }}
                   className="w-full py-3.5 rounded-xl text-[15px] font-semibold text-white transition-colors active:opacity-80"
@@ -1613,7 +1620,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   </div>
                 ))}
               </div>
-              <div className="px-4 pt-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
+              <div className="px-4 pt-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
                 {pendingDeleteSubId ? (() => {
                   const sub = subtasks.find(s => s.id === pendingDeleteSubId)
                   return (
