@@ -1523,14 +1523,13 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
       {/* Subtasks */}
       {(subtasksOpen || subtasksClosing) && !overlay && (
         <div
-          className={`ml-8 mt-1.5 mb-0.5 pl-3 border-l-2 space-y-0.5 ${subtasksClosing ? 'subtask-section-out' : 'subtask-section-in'}`}
-          style={{ borderColor: cat.color + '55' }}
+          className={`ml-6 mt-1.5 mb-1 space-y-1.5 ${subtasksClosing ? 'subtask-section-out' : 'subtask-section-in'}`}
         >
           {subtasks.map((s, i) => (
             <div
               key={s.id}
-              className={`flex items-center gap-2.5 group/sub py-2 ${removingSubIds.has(s.id) ? 'subtask-row-out' : 'subtask-row-in'}`}
-              style={{ animationDelay: removingSubIds.has(s.id) ? '0ms' : `${Math.min(i, 8) * 35}ms` }}
+              className={`group/sub flex items-center gap-2.5 px-3 py-2.5 rounded-xl border ${removingSubIds.has(s.id) ? 'subtask-row-out' : 'subtask-row-in'}`}
+              style={{ backgroundColor: cat.light, borderColor: cat.color + '40', animationDelay: removingSubIds.has(s.id) ? '0ms' : `${Math.min(i, 8) * 35}ms` }}
             >
               <button onClick={() => onToggleSubtask(task.id, s.id)} className="shrink-0 -m-1.5 p-1.5 md:-m-1 md:p-1 active:scale-90 transition-transform" style={{ touchAction: 'manipulation' }}>
                 <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all" style={{ borderColor: s.done ? cat.color : '#C0D0BF', backgroundColor: s.done ? cat.color : 'transparent' }}>
@@ -1563,8 +1562,8 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
             </div>
           ))}
           {addingSubtask ? (
-            <form onSubmit={handleAddSubtask} className="flex items-center gap-2.5 py-2">
-              <div className="w-5 h-5 rounded-full border-2 border-[#D0DDD0] shrink-0" />
+            <form onSubmit={handleAddSubtask} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border" style={{ backgroundColor: cat.light, borderColor: cat.color + '40' }}>
+              <div className="w-5 h-5 rounded-full border-2 shrink-0" style={{ borderColor: cat.color + '80' }} />
               <input
                 ref={subtaskInputRef} autoFocus
                 value={newSubtaskText} onChange={e => setNewSubtaskText(e.target.value)}
@@ -1579,7 +1578,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
               )}
             </form>
           ) : subtasks.length > 0 ? (
-            <button onClick={() => setAddingSubtask(true)} className="flex items-center gap-1.5 text-[#B5C4B6] hover:text-[#7C9A7E] py-2 transition-colors" style={{ fontSize: 13 }}>
+            <button onClick={() => setAddingSubtask(true)} className="flex items-center gap-1.5 w-full px-3 py-2 rounded-xl border border-dashed transition-colors" style={{ borderColor: cat.color + '55', color: cat.color, fontSize: 13, opacity: 0.7 }}>
               <Plus size={13} />Add subtask
             </button>
           ) : null}
