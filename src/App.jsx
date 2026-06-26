@@ -1401,9 +1401,10 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
         <div className="md:hidden fixed inset-0 z-50" onClick={sheetView === 'menu' ? closeActionSheet : undefined}>
           <div className="absolute inset-0 bg-black/25 transition-opacity duration-200" style={{ opacity: actionSheetClosing ? 0 : 1 }} />
           <div
-            className={`absolute inset-x-0 bg-white rounded-t-2xl shadow-xl ${actionSheetClosing ? 'sheet-down' : 'sheet-up'}`}
+            className={`absolute inset-x-0 bg-white rounded-t-2xl shadow-xl overflow-y-auto ${actionSheetClosing ? 'sheet-down' : 'sheet-up'}`}
             style={{
               bottom: sheetKbOffset,
+              maxHeight: `calc(100vh - ${sheetKbOffset + 24}px)`,
               paddingBottom: sheetKbOffset > 0 ? '12px' : 'calc(env(safe-area-inset-bottom) + 8px)',
               transition: sheetKbOffset > 0 ? 'bottom 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : undefined,
             }}
@@ -1452,14 +1453,14 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 </button>
                 <span className="text-[14px] font-semibold text-[#3D4A3E]">Edit Task</span>
               </div>
-              <div className="px-4 py-4">
+              <div className="px-4 py-3">
                 <textarea
                   ref={sheetEditRef}
                   autoFocus
                   value={sheetEditText}
                   onChange={e => setSheetEditText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Escape') setSheetView('menu') }}
-                  rows={3}
+                  rows={2}
                   className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] outline-none resize-none shadow-sm"
                   style={{ borderColor: cat.color + 'BB', fontSize: 16 }}
                 />
@@ -1486,7 +1487,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 </button>
                 <span className="text-[14px] font-semibold text-[#3D4A3E]">Add Subtask</span>
               </div>
-              <div className="px-4 py-4">
+              <div className="px-4 py-3">
                 <input
                   ref={sheetSubRef}
                   autoFocus
