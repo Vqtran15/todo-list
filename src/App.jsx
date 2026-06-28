@@ -1162,6 +1162,7 @@ export default function App() {
                 onChange={e => setText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape') { setText(''); setMobileAddOpen(false) } }}
                 placeholder="New task…"
+                enterKeyHint="go"
                 className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm transition-colors"
                 style={{ borderColor: '#DBE8DA', fontSize: 16 }}
                 onFocus={e => (e.target.style.borderColor = cat.color + 'BB')}
@@ -2306,8 +2307,9 @@ function NewCatForm({ name, setName, color, setColor, icon, setIcon, onSubmit, o
           onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Escape' && onClose()}
           placeholder="List name…"
+          enterKeyHint="enter"
           className={`flex-1 text-[#3D4A3E] placeholder-[#BFC9C0] outline-none border-b border-[#E0EAE0] pb-1.5 ${mobile ? 'text-base' : 'text-[13px]'}`}
-          style={mobile ? { fontSize: 16 } : {}}
+          style={{ fontSize: 16 }}
         />
       </div>
 
