@@ -1248,8 +1248,9 @@ function PlainTaskRow(props) {
 // ── Task Row ───────────────────────────────────────────────────────────────
 
 function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, onToggleStar, onRenameTask, isDragging, dragListeners, dragAttributes, selectMode, isSelected, onToggleSelect, onAddSubtask, onToggleSubtask, onRemoveSubtask, onEditSubtask, overlay }) {
-  const [completing, setCompleting]         = useState(false)
-  const [deleting, setDeleting]             = useState(false)
+  const [pendingComplete, setPendingComplete] = useState(false)
+  const [completing, setCompleting]           = useState(false)
+  const [deleting, setDeleting]               = useState(false)
   const [confirmDelete, setConfirmDelete]   = useState(false)
   const [subtasksOpen, setSubtasksOpen]     = useState(false)
   const [subtasksClosing, setSubtasksClosing] = useState(false)
@@ -1393,12 +1394,16 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
         {/* Complete circle */}
         {!selectMode && (
-          <button onClick={handleComplete} className="shrink-0 -m-2 p-2 md:-m-1 md:p-1 rounded-full transition-all active:scale-90 group/check">
+          <button
+            onClick={() => pendingComplete ? undefined : setPendingComplete(true)}
+            className="shrink-0 -m-2 p-2 md:-m-1 md:p-1 rounded-full transition-all active:scale-90 group/check"
+            style={{ touchAction: 'manipulation' }}
+          >
             <div
-              className={`w-[22px] h-[22px] md:w-[20px] md:h-[20px] rounded-full border-2 transition-all group-hover/check:scale-110 ${completing ? 'scale-125' : ''}`}
-              style={{ borderColor: completing ? cat.color : '#C0D0BF', backgroundColor: completing ? cat.color + '33' : 'transparent' }}
-              onMouseEnter={e => { if (!completing) { e.currentTarget.style.borderColor = cat.color; e.currentTarget.style.backgroundColor = cat.color + '22' } }}
-              onMouseLeave={e => { if (!completing) { e.currentTarget.style.borderColor = '#C0D0BF'; e.currentTarget.style.backgroundColor = 'transparent' } }}
+              className={`w-[22px] h-[22px] md:w-[20px] md:h-[20px] rounded-full border-2 transition-all group-hover/check:scale-110 ${completing || pendingComplete ? 'scale-110' : ''}`}
+              style={{ borderColor: completing || pendingComplete ? cat.color : '#C0D0BF', backgroundColor: completing || pendingComplete ? cat.color + '33' : 'transparent' }}
+              onMouseEnter={e => { if (!completing && !pendingComplete) { e.currentTarget.style.borderColor = cat.color; e.currentTarget.style.backgroundColor = cat.color + '22' } }}
+              onMouseLeave={e => { if (!completing && !pendingComplete) { e.currentTarget.style.borderColor = '#C0D0BF'; e.currentTarget.style.backgroundColor = 'transparent' } }}
             />
           </button>
         )}
@@ -1431,34 +1436,55 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
         {!isEditing && !selectMode && (
           <div className="flex items-center gap-0.5 shrink-0">
 
-            {/* ── Mobile: 3-dot trigger only ── */}
-            {!overlay && (
-              <button
-                onClick={openActionSheet}
-                className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-[#C0D0BF] transition-colors"
-                style={{ touchAction: 'manipulation' }}
-              >
-                <MoreHorizontal size={16} />
-              </button>
-            )}
-
-            {/* ── Desktop: all 4 with hover ── */}
-            <div className={`hidden md:flex items-center gap-0.5 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-              <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
-                <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
-              </button>
-              {!overlay && (
-                <button onClick={() => { if ((subtasksOpen || subtasksClosing) && !newSubtaskText.trim()) { closeSubtasks() } else { setSubtasksOpen(true); setAddingSubtask(true) } }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] transition-all">
-                  <ListPlus size={14} />
+            {pendingComplete ? (
+              <div className="flex items-center gap-1.5 actions-expand">
+                <button
+                  onClick={() => { setPendingComplete(false); handleComplete() }}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white transition-all active:opacity-80"
+                  style={{ backgroundColor: cat.color, touchAction: 'manipulation' }}
+                >
+                  Done
                 </button>
-              )}
-              <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
-                <Pencil size={14} />
-              </button>
-              <button onClick={() => setConfirmDelete(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
-                <Trash2 size={15} />
-              </button>
-            </div>
+                <button
+                  onClick={() => setPendingComplete(false)}
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-[#9BAA9C] bg-[#F0F4EF] transition-all active:opacity-80"
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  Undo
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* ── Mobile: 3-dot trigger only ── */}
+                {!overlay && (
+                  <button
+                    onClick={openActionSheet}
+                    className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-[#C0D0BF] transition-colors"
+                    style={{ touchAction: 'manipulation' }}
+                  >
+                    <MoreHorizontal size={16} />
+                  </button>
+                )}
+
+                {/* ── Desktop: all 4 with hover ── */}
+                <div className={`hidden md:flex items-center gap-0.5 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                  <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
+                    <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
+                  </button>
+                  {!overlay && (
+                    <button onClick={() => { if ((subtasksOpen || subtasksClosing) && !newSubtaskText.trim()) { closeSubtasks() } else { setSubtasksOpen(true); setAddingSubtask(true) } }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] transition-all">
+                      <ListPlus size={14} />
+                    </button>
+                  )}
+                  <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
+                    <Pencil size={14} />
+                  </button>
+                  <button onClick={() => setConfirmDelete(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
