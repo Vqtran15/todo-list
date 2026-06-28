@@ -35,6 +35,14 @@ body { margin: 0; }
   pointer-events: none;
 }
 
+@keyframes detail-content-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.detail-content-enter {
+  animation: detail-content-in 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
 @keyframes slide-in-from-left {
   from { opacity: 0; transform: translateX(-48px); }
   to   { opacity: 1; transform: none; }

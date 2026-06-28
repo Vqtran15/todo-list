@@ -1350,7 +1350,7 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto px-5 py-5">
+      <div key={task.id} className="flex-1 overflow-y-auto px-5 py-5 detail-content-enter">
         {/* Title */}
         {editingTitle ? (
           <textarea
@@ -1814,6 +1814,10 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   <Star size={18} fill={task.starred ? 'currentColor' : 'none'} style={{ color: task.starred ? '#C4A93A' : '#7C9A7E' }} />
                   <span className="text-[15px] text-[#3D4A3E]">{task.starred ? 'Unstar' : 'Star'}</span>
                 </button>
+                <button onClick={() => { setSheetEditText(task.text); navigateSheet('edit') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <Pencil size={18} style={{ color: '#7C9A7E' }} />
+                  <span className="text-[15px] text-[#3D4A3E]">Edit Task</span>
+                </button>
                 {!overlay && (
                   <button onClick={() => { setSheetSubtaskText(''); navigateSheet('subtask') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
                     <ListPlus size={18} style={{ color: '#7C9A7E' }} />
@@ -1823,13 +1827,9 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 {!overlay && subtasks.length > 0 && (
                   <button onClick={() => navigateSheet('subtasks')} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
                     <ListChecks size={18} style={{ color: '#7C9A7E' }} />
-                    <span className="text-[15px] text-[#3D4A3E]">Subtasks ({subtasks.length})</span>
+                    <span className="text-[15px] text-[#3D4A3E]">View Subtasks ({subtasks.length})</span>
                   </button>
                 )}
-                <button onClick={() => { setSheetEditText(task.text); navigateSheet('edit') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
-                  <Pencil size={18} style={{ color: '#7C9A7E' }} />
-                  <span className="text-[15px] text-[#3D4A3E]">Edit</span>
-                </button>
                 <button onClick={() => { setConfirmDelete(true); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-rose-50 transition-colors" style={{ touchAction: 'manipulation' }}>
                   <Trash2 size={18} className="text-rose-400" />
                   <span className="text-[15px] text-rose-400">Delete</span>
