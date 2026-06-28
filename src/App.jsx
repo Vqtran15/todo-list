@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { supabase } from './supabase.js'
@@ -22,7 +22,7 @@ import {
   Sparkles, Bike, Baby, Pill, PawPrint, Sunrise, Wallet, Globe,
   // UI icons
   Plus, Search, Pencil, X, GripVertical, Settings, ChevronDown,
-  Square, SquareCheck, ListPlus, ListChecks, Trash2, MoreHorizontal,
+  Square, SquareCheck, ListPlus, ListChecks, Trash2, MoreHorizontal, CheckCircle2,
 } from 'lucide-react'
 
 // ── Icon registry ──────────────────────────────────────────────────────────
@@ -147,8 +147,9 @@ export default function App() {
   const [navDir, setNavDir]         = useState('none')
   const [text, setText]             = useState('')
   const [search, setSearch]         = useState('')
-  const [editingId, setEditingId]   = useState(null)
-  const [editText, setEditText]     = useState('')
+  const [editingId, setEditingId]     = useState(null)
+  const [editText, setEditText]       = useState('')
+  const [detailTaskId, setDetailTaskId] = useState(null)
   const [newTaskId, setNewTaskId]   = useState(null)
   const [searchOpen, setSearchOpen]   = useState(false)
   const [dragActiveId, setDragActiveId] = useState(null)
@@ -180,6 +181,7 @@ export default function App() {
   }
 
   useEffect(() => { setCompletedOpen(false); setCompletedClosing(false) }, [active])
+  useEffect(() => { setDetailTaskId(null) }, [active])
   useEffect(() => { textRef.current = text }, [text])
 
   useEffect(() => {
@@ -309,6 +311,7 @@ export default function App() {
   const themeDark    = isStarred ? '#8A7020' : (cat?.dark  ?? prevCat?.dark  ?? '#4A6B4C')
   const themeLight   = isStarred ? '#FBF6E3' : (cat?.light ?? prevCat?.light ?? '#EEF3EC')
   const starredTasks = tasks.filter(t => t.starred && !t.archived)
+  const detailTask   = detailTaskId ? tasks.find(t => t.id === detailTaskId && !t.archived) : null
   const activeTasks  = tasks.filter(t => t.category === active && !t.archived)
   const currentSort  = sortBy[active] || 'manual'
   const displayTasks = (() => {
@@ -543,6 +546,8 @@ export default function App() {
         .then(({ error }) => { if (error) console.error('[supabase] reorder cat:', error) })
     )
   }
+  const closeDetailPanel = useCallback(() => setDetailTaskId(null), [])
+
   const kbRef = useRef({})
   kbRef.current = { searchOpen, cat, isSettings, isStarred }
 
@@ -697,7 +702,8 @@ export default function App() {
       </aside>
 
       {/* ════════ MAIN CONTENT ════════ */}
-      <main id="main-scroll" className="flex-1 overflow-y-auto">
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        <main id="main-scroll" className="flex-1 overflow-y-auto">
         <div key={viewKey} className={`${navDir === 'right' ? 'slide-from-right' : navDir === 'left' ? 'slide-from-left' : 'view-enter'} px-4 md:px-10 pt-5 md:pt-8 pb-36 md:pb-10 max-w-xl mx-auto md:mx-0`}>
 
           {/* Mobile header */}
@@ -963,6 +969,7 @@ export default function App() {
                           onArchive={archive} onDelete={remove} onToggleStar={toggleStar} onRenameTask={renameTask}
                           onAddSubtask={addSubtask} onToggleSubtask={toggleSubtask} onRemoveSubtask={removeSubtask} onEditSubtask={editSubtask}
                           selectMode={selectMode} isSelected={selectedIds.has(t.id)} onToggleSelect={toggleSelect}
+                          onOpenDetail={id => setDetailTaskId(id)} isDetailOpen={detailTaskId === t.id}
                         />
                       ))}
                     </div>
@@ -997,6 +1004,7 @@ export default function App() {
                       onArchive={archive} onDelete={remove} onToggleStar={toggleStar} onRenameTask={renameTask}
                       onAddSubtask={addSubtask} onToggleSubtask={toggleSubtask} onRemoveSubtask={removeSubtask} onEditSubtask={editSubtask}
                       selectMode={selectMode} isSelected={selectedIds.has(t.id)} onToggleSelect={toggleSelect}
+                      onOpenDetail={id => setDetailTaskId(id)} isDetailOpen={detailTaskId === t.id}
                     />
                   ))}
                 </div>
@@ -1045,7 +1053,23 @@ export default function App() {
             </>
           )}
         </div>
-      </main>
+        </main>
+      {detailTask && (
+        <TaskDetailPanel
+          task={detailTask}
+          cat={categories.find(c => c.id === detailTask.category) ?? cat}
+          onClose={closeDetailPanel}
+          onArchive={id => { archive(id); setDetailTaskId(null) }}
+          onDelete={id => { remove(id); setDetailTaskId(null) }}
+          onToggleStar={toggleStar}
+          onRenameTask={renameTask}
+          onAddSubtask={addSubtask}
+          onToggleSubtask={toggleSubtask}
+          onRemoveSubtask={removeSubtask}
+          onEditSubtask={editSubtask}
+        />
+      )}
+      </div>
 
       {/* ════════ BULK ACTION BAR ════════ */}
       {(selectMode || selectBarClosing) && cat && (
@@ -1249,6 +1273,196 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
   )
 }
 
+// ── Task Detail Panel (desktop right pane) ─────────────────────────────────
+
+function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar, onRenameTask, onAddSubtask, onToggleSubtask, onRemoveSubtask, onEditSubtask }) {
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleText, setTitleText]       = useState(task.text)
+  const [newSubtask, setNewSubtask]     = useState('')
+  const [editingSubId, setEditingSubId] = useState(null)
+  const [editSubText, setEditSubText]   = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [pendingDone, setPendingDone]   = useState(false)
+  const titleRef   = useRef()
+  const subtaskRef = useRef()
+
+  useEffect(() => {
+    setTitleText(task.text); setEditingTitle(false)
+    setPendingDone(false); setNewSubtask(''); setEditingSubId(null)
+  }, [task.id])
+
+  useEffect(() => { if (!editingTitle) setTitleText(task.text) }, [task.text])
+
+  useEffect(() => {
+    const onKey = e => {
+      if (e.key === 'Escape' && !editingTitle && !editingSubId && !confirmDelete) onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [editingTitle, editingSubId, confirmDelete, onClose])
+
+  const saveTitle = () => {
+    if (titleText.trim() && titleText.trim() !== task.text) onRenameTask(task.id, titleText.trim())
+    else setTitleText(task.text)
+    setEditingTitle(false)
+  }
+
+  const startEditTitle = () => {
+    setEditingTitle(true)
+    setTimeout(() => { titleRef.current?.focus(); titleRef.current?.select() }, 10)
+  }
+
+  const handleAddSubtask = e => {
+    e.preventDefault()
+    if (!newSubtask.trim()) return
+    onAddSubtask(task.id, newSubtask.trim())
+    setNewSubtask('')
+    subtaskRef.current?.focus()
+  }
+
+  const subtasks = task.subtasks || []
+  const doneSubs = subtasks.filter(s => s.done).length
+
+  return (
+    <aside className="hidden md:flex flex-col w-[400px] shrink-0 bg-white border-l border-[#E0EAE0] slide-from-right overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F4EF] shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: cat.light }}>
+            <CatIcon cat={cat} size={12} style={{ color: cat.color }} />
+          </div>
+          <span className="text-[12px] font-semibold truncate" style={{ color: cat.color }}>{cat.name}</span>
+        </div>
+        <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] hover:text-[#3D4A3E] hover:bg-[#F0F4EF] transition-colors shrink-0">
+          <X size={16} />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto px-5 py-5">
+        {/* Title */}
+        {editingTitle ? (
+          <textarea
+            ref={titleRef}
+            value={titleText}
+            onChange={e => setTitleText(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveTitle() }
+              if (e.key === 'Escape') { setTitleText(task.text); setEditingTitle(false) }
+            }}
+            onBlur={saveTitle}
+            rows={3}
+            className="w-full font-semibold text-[#3D4A3E] outline-none resize-none border-b-2 pb-1 bg-transparent leading-snug mb-4"
+            style={{ borderColor: cat.color, fontSize: 20 }}
+          />
+        ) : (
+          <h2
+            onDoubleClick={startEditTitle}
+            title="Double-click to edit title"
+            className="text-[20px] font-semibold text-[#3D4A3E] leading-snug mb-4 cursor-default"
+          >{task.text}</h2>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
+          {pendingDone ? (
+            <>
+              <button onClick={() => { setPendingDone(false); onArchive(task.id) }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white transition-colors" style={{ backgroundColor: cat.color }}>
+                <CheckCircle2 size={14} /> Done
+              </button>
+              <button onClick={() => setPendingDone(false)} className="px-3 py-1.5 rounded-lg text-[13px] font-medium bg-[#F0F4EF] text-[#637265] hover:bg-[#E4EAE3] transition-colors">
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setPendingDone(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium bg-[#F0F4EF] text-[#637265] hover:bg-[#E4EAE3] transition-colors">
+              <CheckCircle2 size={14} /> Mark done
+            </button>
+          )}
+          <button title={task.starred ? 'Unstar' : 'Star'} onClick={() => onToggleStar(task.id)} className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
+            <Star size={15} fill={task.starred ? 'currentColor' : 'none'} />
+          </button>
+          <button title="Delete" onClick={() => setConfirmDelete(true)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 transition-colors">
+            <Trash2 size={15} />
+          </button>
+        </div>
+
+        {/* Subtasks */}
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9BAA9C] mb-3">
+          Subtasks{subtasks.length > 0 && ` · ${doneSubs}/${subtasks.length}`}
+        </p>
+
+        {subtasks.length > 0 && (
+          <div className="space-y-1 mb-3">
+            {subtasks.map(s => (
+              <div key={s.id} className="group/dp flex items-start gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[#F8F6F2] transition-colors">
+                <button
+                  onClick={() => onToggleSubtask(task.id, s.id)}
+                  className="mt-0.5 shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all active:scale-90"
+                  style={{ borderColor: s.done ? cat.color : '#C0D0BF', backgroundColor: s.done ? cat.color : 'transparent' }}
+                >
+                  {s.done && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>}
+                </button>
+                {editingSubId === s.id ? (
+                  <input
+                    autoFocus value={editSubText}
+                    onChange={e => setEditSubText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') { onEditSubtask(task.id, s.id, editSubText); setEditingSubId(null) }
+                      if (e.key === 'Escape') setEditingSubId(null)
+                    }}
+                    onBlur={() => { if (editSubText.trim()) onEditSubtask(task.id, s.id, editSubText); setEditingSubId(null) }}
+                    className="flex-1 text-[#3D4A3E] outline-none bg-transparent border-b"
+                    style={{ borderColor: cat.color, fontSize: 14 }}
+                  />
+                ) : (
+                  <span
+                    onDoubleClick={() => { setEditingSubId(s.id); setEditSubText(s.text) }}
+                    className={`flex-1 leading-snug select-none cursor-default ${s.done ? 'line-through text-[#9BAA9C]' : 'text-[#3D4A3E]'}`}
+                    style={{ fontSize: 14 }}
+                  >{s.text}</span>
+                )}
+                <div className="flex items-center gap-0.5 opacity-0 group-hover/dp:opacity-100 transition-opacity shrink-0 mt-0.5">
+                  <button onClick={() => { setEditingSubId(s.id); setEditSubText(s.text) }} className="w-6 h-6 flex items-center justify-center rounded text-[#C8BEB4] hover:text-[#7C9A7E] transition-colors">
+                    <Pencil size={12} />
+                  </button>
+                  <button onClick={() => onRemoveSubtask(task.id, s.id)} className="w-6 h-6 flex items-center justify-center rounded text-[#C8BEB4] hover:text-rose-400 transition-colors">
+                    <X size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <form onSubmit={handleAddSubtask}>
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed hover:bg-[#F8F6F2] transition-colors" style={{ borderColor: cat.color + '55' }}>
+            <Plus size={14} style={{ color: cat.color, opacity: 0.7, flexShrink: 0 }} />
+            <input
+              ref={subtaskRef}
+              value={newSubtask}
+              onChange={e => setNewSubtask(e.target.value)}
+              placeholder="Add subtask…"
+              className="flex-1 text-[14px] text-[#3D4A3E] placeholder-[#C0CCC0] outline-none bg-transparent"
+            />
+            {newSubtask.trim() && (
+              <button type="submit" className="text-[11px] font-semibold px-2 py-0.5 rounded-lg text-white shrink-0" style={{ backgroundColor: cat.color }}>Add</button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {confirmDelete && (
+        <ConfirmModal
+          message={task.text}
+          onConfirm={() => { setConfirmDelete(false); onDelete(task.id) }}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
+    </aside>
+  )
+}
+
 // ── Sortable wrapper ───────────────────────────────────────────────────────
 
 function SortableTaskRow(props) {
@@ -1291,7 +1505,7 @@ function PlainTaskRow(props) {
 
 // ── Task Row ───────────────────────────────────────────────────────────────
 
-function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, onToggleStar, onRenameTask, isDragging, dragListeners, dragAttributes, selectMode, isSelected, onToggleSelect, onAddSubtask, onToggleSubtask, onRemoveSubtask, onEditSubtask, overlay }) {
+function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, onSaveEdit, onCancelEdit, onArchive, onDelete, onToggleStar, onRenameTask, isDragging, dragListeners, dragAttributes, selectMode, isSelected, onToggleSelect, onAddSubtask, onToggleSubtask, onRemoveSubtask, onEditSubtask, overlay, onOpenDetail, isDetailOpen }) {
   const [pendingComplete, setPendingComplete] = useState(false)
   const [completing, setCompleting]           = useState(false)
   const [deleting, setDeleting]               = useState(false)
@@ -1416,9 +1630,15 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
           : deleting  ? 'task-deleting'
           : isDragging ? 'border-[#7C9A7E] shadow-lg opacity-50 rotate-1 scale-[1.02]'
           : isSelected ? 'border-[#7C9A7E]'
+          : isDetailOpen ? 'shadow'
           : 'border-[#E0EAE0] md:hover:border-[#C8DCC8] md:hover:shadow'
         }`}
-        style={isSelected ? { borderColor: cat.color } : task.starred && !completing && !deleting ? { backgroundColor: '#FEFBF0' } : undefined}
+        style={
+          isSelected ? { borderColor: cat.color }
+          : isDetailOpen && !completing && !deleting ? { borderColor: cat.color, ...(task.starred ? { backgroundColor: '#FEFBF0' } : {}) }
+          : task.starred && !completing && !deleting ? { backgroundColor: '#FEFBF0' }
+          : undefined
+        }
       >
         {/* Starred accent bar */}
         {task.starred && !completing && !deleting && (
@@ -1470,7 +1690,12 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
             />
           ) : (
             <>
-              <span onDoubleClick={() => !overlay && onStartEdit(task.id, task.text)} className="text-[#3D4A3E] select-none leading-snug cursor-default" style={{ fontSize: 14 }}>{task.text}</span>
+              <span
+                onClick={() => !overlay && onOpenDetail?.(task.id)}
+                onDoubleClick={() => !overlay && onStartEdit(task.id, task.text)}
+                className={`text-[#3D4A3E] select-none leading-snug ${onOpenDetail && !overlay ? 'md:cursor-pointer' : 'cursor-default'}`}
+                style={{ fontSize: 14 }}
+              >{task.text}</span>
               {subtasks.length > 0 && !overlay && (
                 <button onClick={() => setSubtasksOpen(p => !p)} className="flex items-center gap-1 mt-0.5">
                   <span className="text-[11px] font-medium" style={{ color: cat.color }}>{doneSubs}/{subtasks.length}</span>
