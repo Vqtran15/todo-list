@@ -26,6 +26,15 @@ body { margin: 0; }
   animation: slide-in-from-right 0.26s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
+@keyframes slide-out-to-right {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: translateX(48px); }
+}
+.slide-to-right {
+  animation: slide-out-to-right 0.22s cubic-bezier(0.4, 0, 0.6, 1) both;
+  pointer-events: none;
+}
+
 @keyframes slide-in-from-left {
   from { opacity: 0; transform: translateX(-48px); }
   to   { opacity: 1; transform: none; }

@@ -1283,23 +1283,34 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
   const [editSubText, setEditSubText]   = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [pendingDone, setPendingDone]   = useState(false)
-  const titleRef   = useRef()
-  const subtaskRef = useRef()
+  const [isClosing, setIsClosing]       = useState(false)
+  const titleRef    = useRef()
+  const subtaskRef  = useRef()
+  const closeTimer  = useRef()
+
+  const triggerClose = useCallback((cb) => {
+    setIsClosing(true)
+    clearTimeout(closeTimer.current)
+    closeTimer.current = setTimeout(cb, 215)
+  }, [])
+
+  useEffect(() => () => clearTimeout(closeTimer.current), [])
 
   useEffect(() => {
     setTitleText(task.text); setEditingTitle(false)
     setPendingDone(false); setNewSubtask(''); setEditingSubId(null)
+    clearTimeout(closeTimer.current); setIsClosing(false)
   }, [task.id])
 
   useEffect(() => { if (!editingTitle) setTitleText(task.text) }, [task.text])
 
   useEffect(() => {
     const onKey = e => {
-      if (e.key === 'Escape' && !editingTitle && !editingSubId && !confirmDelete) onClose()
+      if (e.key === 'Escape' && !editingTitle && !editingSubId && !confirmDelete) triggerClose(onClose)
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [editingTitle, editingSubId, confirmDelete, onClose])
+  }, [editingTitle, editingSubId, confirmDelete, triggerClose, onClose])
 
   const saveTitle = () => {
     if (titleText.trim() && titleText.trim() !== task.text) onRenameTask(task.id, titleText.trim())
@@ -1324,7 +1335,7 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
   const doneSubs = subtasks.filter(s => s.done).length
 
   return (
-    <aside className="hidden md:flex flex-col w-[400px] shrink-0 bg-white border-l border-[#E0EAE0] slide-from-right overflow-hidden">
+    <aside className={`hidden md:flex flex-col w-[400px] shrink-0 bg-white border-l border-[#E0EAE0] overflow-hidden ${isClosing ? 'slide-to-right' : 'slide-from-right'}`}>
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F4EF] shrink-0">
         <div className="flex items-center gap-2 min-w-0">
@@ -1333,7 +1344,7 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
           </div>
           <span className="text-[12px] font-semibold truncate" style={{ color: cat.color }}>{cat.name}</span>
         </div>
-        <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] hover:text-[#3D4A3E] hover:bg-[#F0F4EF] transition-colors shrink-0">
+        <button onClick={() => triggerClose(onClose)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] hover:text-[#3D4A3E] hover:bg-[#F0F4EF] transition-colors shrink-0">
           <X size={16} />
         </button>
       </div>
@@ -1367,7 +1378,7 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
         <div className="flex items-center gap-2 mb-6 flex-wrap">
           {pendingDone ? (
             <>
-              <button onClick={() => { setPendingDone(false); onArchive(task.id) }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white transition-colors" style={{ backgroundColor: cat.color }}>
+              <button onClick={() => { setPendingDone(false); triggerClose(() => onArchive(task.id)) }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white transition-colors" style={{ backgroundColor: cat.color }}>
                 <CheckCircle2 size={14} /> Done
               </button>
               <button onClick={() => setPendingDone(false)} className="px-3 py-1.5 rounded-lg text-[13px] font-medium bg-[#F0F4EF] text-[#637265] hover:bg-[#E4EAE3] transition-colors">
@@ -1455,7 +1466,7 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
       {confirmDelete && (
         <ConfirmModal
           message={task.text}
-          onConfirm={() => { setConfirmDelete(false); onDelete(task.id) }}
+          onConfirm={() => { setConfirmDelete(false); triggerClose(() => onDelete(task.id)) }}
           onCancel={() => setConfirmDelete(false)}
         />
       )}
@@ -1622,10 +1633,17 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
     }, 200)
   }
 
+  const handleCardClick = (!overlay && onOpenDetail && !completing && !deleting)
+    ? e => { if (!e.target.closest('button, input, textarea')) onOpenDetail(task.id) }
+    : undefined
+
   return (
     <>
       <div
+        onClick={handleCardClick}
         className={`relative group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border shadow-sm transition-all ${
+          !overlay && onOpenDetail && !completing && !deleting ? 'md:cursor-pointer' : ''
+        } ${
           completing  ? 'task-completing'
           : deleting  ? 'task-deleting'
           : isDragging ? 'border-[#7C9A7E] shadow-lg opacity-50 rotate-1 scale-[1.02]'
@@ -1691,9 +1709,8 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
           ) : (
             <>
               <span
-                onClick={() => !overlay && onOpenDetail?.(task.id)}
                 onDoubleClick={() => !overlay && onStartEdit(task.id, task.text)}
-                className={`text-[#3D4A3E] select-none leading-snug ${onOpenDetail && !overlay ? 'md:cursor-pointer' : 'cursor-default'}`}
+                className="text-[#3D4A3E] select-none leading-snug cursor-default"
                 style={{ fontSize: 14 }}
               >{task.text}</span>
               {subtasks.length > 0 && !overlay && (
