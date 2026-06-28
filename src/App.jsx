@@ -69,7 +69,6 @@ const CUSTOM_ICONS = [
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-const MAX_LISTS = 5
 
 const DEFAULT_CATEGORIES = [
   { id: 'general',   name: 'General',   iconName: 'clipboard-list',  color: '#7C9A7E', light: '#EEF3EC', dark: '#4A6B4C', custom: false },
@@ -504,7 +503,6 @@ export default function App() {
   }
 
   const createCat = ({ name, iconName, color, light, dark }) => {
-    if (categories.length >= MAX_LISTS) return null
     const id = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now()
     const newCat = { id, name, iconName, color, light, dark, custom: true }
     const prevCats = categories
@@ -1204,7 +1202,8 @@ export default function App() {
         className="md:hidden fixed bottom-0 inset-x-0 bg-[#ECF0EA] border-t border-[#D5E2D4] z-10 flex"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)', paddingTop: '14px', paddingRight: 'env(safe-area-inset-right)' }}
       >
-        <div className="flex overflow-x-auto no-scrollbar flex-1">
+        <div className="relative flex-1 overflow-hidden">
+          <div className="flex overflow-x-auto no-scrollbar h-full">
           {allNavItems.map(c => {
             const count = c.id === 'archive'
               ? archiveCount
@@ -1231,6 +1230,8 @@ export default function App() {
               </button>
             )
           })}
+          </div>
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10" style={{ background: 'linear-gradient(to right, transparent, #ECF0EA)' }} />
         </div>
       </nav>
     </div>
@@ -2601,12 +2602,7 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
       </DndContext>
 
         {/* Add new list */}
-        {categories.length >= MAX_LISTS ? (
-          <div className="mt-2 bg-white rounded-2xl border border-dashed border-[#E0EAE0] shadow-sm px-4 py-3.5 flex items-center gap-2.5">
-            <span className="text-[13px] font-medium text-[#B5C4B6]">{MAX_LISTS}/{MAX_LISTS} lists — delete one to add another</span>
-          </div>
-        ) : (
-          <div className="mt-2 bg-white rounded-2xl border border-dashed border-[#C8DAC7] shadow-sm overflow-hidden">
+        <div className="mt-2 bg-white rounded-2xl border border-dashed border-[#C8DAC7] shadow-sm overflow-hidden">
             {showAdd ? (
               <div className="p-4">
                 <p className="text-[12px] font-semibold text-[#5A6B5C] mb-3">New List</p>
@@ -2628,7 +2624,6 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
               </button>
             )}
           </div>
-        )}
 
       {/* Account section */}
       <div className="mt-8 mb-2">
