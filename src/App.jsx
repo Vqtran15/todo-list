@@ -1283,11 +1283,14 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
   const [sheetViewDir, setSheetViewDir]             = useState('forward')
   const [sheetEditText, setSheetEditText]           = useState('')
   const [sheetSubtaskText, setSheetSubtaskText]     = useState('')
+  const [sheetEditSubId, setSheetEditSubId]         = useState(null)
+  const [sheetEditSubText, setSheetEditSubText]     = useState('')
   const [sheetKbOffset, setSheetKbOffset]           = useState(0)
   const [pendingDeleteSubId, setPendingDeleteSubId] = useState(null)
-  const subtaskInputRef = useRef()
-  const sheetEditRef    = useRef()
-  const sheetSubRef     = useRef()
+  const subtaskInputRef  = useRef()
+  const sheetEditRef     = useRef()
+  const sheetSubRef      = useRef()
+  const sheetEditSubRef  = useRef()
 
   const openActionSheet = () => {
     const main = document.getElementById('main-scroll')
@@ -1301,20 +1304,22 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
     setActionSheetClosing(true)
     setTimeout(() => { setActionSheetOpen(false); setActionSheetClosing(false); setSheetView('menu'); setPendingDeleteSubId(null) }, 200)
   }
-  const navigateSheet = (view) => { setSheetViewDir('forward'); setSheetView(view) }
-  const backToMenu    = () => { setSheetViewDir('back'); setSheetView('menu'); setPendingDeleteSubId(null) }
+  const navigateSheet   = (view) => { setSheetViewDir('forward'); setSheetView(view) }
+  const backToMenu      = () => { setSheetViewDir('back'); setSheetView('menu'); setPendingDeleteSubId(null) }
+  const backToSubtasks  = () => { setSheetViewDir('back'); setSheetView('subtasks'); setSheetEditSubId(null) }
 
   useEffect(() => () => { document.getElementById('main-scroll')?.style.setProperty('overflow', '') }, [])
 
   useEffect(() => {
     if (!actionSheetOpen || sheetView === 'menu' || sheetView === 'subtasks') return
-    const ref = sheetView === 'edit' ? sheetEditRef : sheetSubRef
+    const ref = sheetView === 'edit' ? sheetEditRef : sheetView === 'edit-subtask' ? sheetEditSubRef : sheetSubRef
     const t = setTimeout(() => ref.current?.focus(), 50)
     return () => clearTimeout(t)
   }, [actionSheetOpen, sheetView])
 
   useEffect(() => {
     if (!actionSheetOpen || sheetView === 'menu' || sheetView === 'subtasks') { setSheetKbOffset(0); return }
+    // 'edit', 'subtask', 'edit-subtask' views all have inputs that open the keyboard
     const update = () => {
       const vv = window.visualViewport
       setSheetKbOffset(vv ? Math.max(0, window.innerHeight - vv.offsetTop - vv.height) : 0)
@@ -1636,6 +1641,13 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                     </div>
                     <span className={`flex-1 text-[14px] leading-snug ${s.done ? 'line-through text-[#9BAA9C]' : 'text-[#3D4A3E]'}`}>{s.text}</span>
                     <button
+                      onClick={() => { setSheetEditSubId(s.id); setSheetEditSubText(s.text); navigateSheet('edit-subtask') }}
+                      className="w-9 h-9 flex items-center justify-center rounded-lg active:bg-[#F0F4EF] transition-colors"
+                      style={{ touchAction: 'manipulation' }}
+                    >
+                      <Pencil size={14} className="text-[#9BAA9C]" />
+                    </button>
+                    <button
                       onClick={() => setPendingDeleteSubId(s.id)}
                       className="w-9 h-9 flex items-center justify-center rounded-lg active:bg-rose-50 transition-colors"
                       style={{ touchAction: 'manipulation' }}
@@ -1660,6 +1672,39 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 })() : (
                   <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>Done</button>
                 )}
+              </div>
+            </>}
+
+            {/* ── Edit Subtask view ── */}
+            {sheetView === 'edit-subtask' && <>
+              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
+                <button onClick={backToSubtasks} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
+                </button>
+                <span className="text-[14px] font-semibold text-[#3D4A3E]">Edit Subtask</span>
+              </div>
+              <div className="px-4 pt-4">
+                <textarea
+                  ref={sheetEditSubRef}
+                  value={sheetEditSubText}
+                  onChange={e => setSheetEditSubText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (sheetEditSubText.trim()) { onEditSubtask(task.id, sheetEditSubId, sheetEditSubText); backToSubtasks() } } }}
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] outline-none resize-none shadow-sm transition-colors"
+                  style={{ borderColor: cat.color + '88', fontSize: 16 }}
+                />
+              </div>
+              <div className="px-4 pt-3 flex gap-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
+                <button
+                  onClick={backToSubtasks}
+                  className="flex-1 py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors"
+                  style={{ touchAction: 'manipulation' }}
+                >Cancel</button>
+                <button
+                  onClick={() => { if (sheetEditSubText.trim()) { onEditSubtask(task.id, sheetEditSubId, sheetEditSubText); backToSubtasks() } }}
+                  className="flex-1 py-3.5 rounded-xl text-[15px] font-semibold text-white transition-colors"
+                  style={{ backgroundColor: cat.color, touchAction: 'manipulation' }}
+                >Save</button>
               </div>
             </>}
 
@@ -1705,6 +1750,9 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   style={{ fontSize: 14, touchAction: 'manipulation' }}
                 >{s.text}</span>
               )}
+              <button onClick={() => { setEditingSubId(s.id); setEditSubText(s.text) }} className="hidden md:flex md:opacity-0 md:group-hover/sub:opacity-100 md:w-8 md:h-8 items-center justify-center rounded-lg text-[#C8BEB4] hover:text-[#7C9A7E] active:text-[#7C9A7E] transition-all" style={{ touchAction: 'manipulation' }}>
+                <Pencil size={13} />
+              </button>
               <button onClick={() => handleRemoveSubtask(s.id)} className="hidden md:flex md:opacity-0 md:group-hover/sub:opacity-100 md:w-8 md:h-8 items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:text-rose-400 transition-all" style={{ touchAction: 'manipulation' }}>
                 <X size={14} />
               </button>
