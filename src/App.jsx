@@ -163,6 +163,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true)
   const [toast, setToast]           = useState(null)
   const toastTimer                  = useRef(null)
+  const undoStackRef                = useRef([])
   const [sortBy, setSortBy]         = useState(() => {
     try { return JSON.parse(localStorage.getItem('todo-sort-by')) || {} } catch { return {} }
   })
@@ -338,6 +339,7 @@ export default function App() {
 
   const archive = id => {
     const prev = tasks
+    undoStackRef.current = [{ type: 'complete', taskId: id }, ...undoStackRef.current].slice(0, 10)
     setTasks(p => p.map(t => t.id === id ? { ...t, archived: true } : t))
     supabase.from('tasks').update({ archived: true }).eq('id', id)
       .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to complete task.') } })
@@ -349,6 +351,8 @@ export default function App() {
       .then(({ error }) => { if (error) { setTasks(prev); showToast('Failed to restore task.') } })
   }
   const remove = id => {
+    const task = tasks.find(t => t.id === id)
+    if (task) undoStackRef.current = [{ type: 'delete', task }, ...undoStackRef.current].slice(0, 10)
     const prev = tasks
     setTasks(p => p.filter(t => t.id !== id))
     supabase.from('tasks').delete().eq('id', id)
@@ -539,6 +543,46 @@ export default function App() {
         .then(({ error }) => { if (error) console.error('[supabase] reorder cat:', error) })
     )
   }
+  const kbRef = useRef({})
+  kbRef.current = { searchOpen, cat, isSettings, isStarred }
+
+  const performUndoRef = useRef(null)
+  performUndoRef.current = () => {
+    const [top, ...rest] = undoStackRef.current
+    if (!top) return
+    undoStackRef.current = rest
+    if (top.type === 'complete') {
+      restore(top.taskId)
+      showToast('Task restored', 'success')
+    } else if (top.type === 'delete') {
+      setTasks(p => [...p, top.task])
+      supabase.from('tasks').insert({ ...taskToDb(top.task, 0), user_id: user.id })
+      showToast('Deletion undone', 'success')
+    }
+  }
+
+  useEffect(() => {
+    const onKey = e => {
+      const { searchOpen, cat, isSettings, isStarred } = kbRef.current
+      const inInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        if (searchOpen) { setSearch(''); setSearchOpen(false) }
+        else { setSearchOpen(true) }
+      }
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'z') {
+        e.preventDefault()
+        performUndoRef.current?.()
+      }
+      if (e.key === 'n' && !inInput && !e.metaKey && !e.ctrlKey && !e.altKey && cat && !isSettings && !isStarred) {
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
+
   const navTo = id => {
     const catIds = categories.map(c => c.id)
     const curIdx = catIds.indexOf(active)
@@ -1426,7 +1470,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
             />
           ) : (
             <>
-              <span className="text-[#3D4A3E] select-none leading-snug" style={{ fontSize: 14 }}>{task.text}</span>
+              <span onDoubleClick={() => !overlay && onStartEdit(task.id, task.text)} className="text-[#3D4A3E] select-none leading-snug cursor-default" style={{ fontSize: 14 }}>{task.text}</span>
               {subtasks.length > 0 && !overlay && (
                 <button onClick={() => setSubtasksOpen(p => !p)} className="flex items-center gap-1 mt-0.5">
                   <span className="text-[11px] font-medium" style={{ color: cat.color }}>{doneSubs}/{subtasks.length}</span>
@@ -1473,18 +1517,18 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
                 {/* ── Desktop: all 4 with hover ── */}
                 <div className={`hidden md:flex items-center gap-0.5 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                  <button onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
+                  <button title={task.starred ? 'Unstar' : 'Star'} onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
                     <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
                   </button>
                   {!overlay && (
-                    <button onClick={() => { if ((subtasksOpen || subtasksClosing) && !newSubtaskText.trim()) { closeSubtasks() } else { setSubtasksOpen(true); setAddingSubtask(true) } }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] transition-all">
+                    <button title="Add subtask" onClick={() => { if ((subtasksOpen || subtasksClosing) && !newSubtaskText.trim()) { closeSubtasks() } else { setSubtasksOpen(true); setAddingSubtask(true) } }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] transition-all">
                       <ListPlus size={14} />
                     </button>
                   )}
-                  <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
+                  <button title="Edit (double-click)" onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
                     <Pencil size={14} />
                   </button>
-                  <button onClick={() => setConfirmDelete(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
+                  <button title="Delete" onClick={() => setConfirmDelete(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
                     <Trash2 size={15} />
                   </button>
                 </div>
