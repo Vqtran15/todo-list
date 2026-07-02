@@ -118,10 +118,12 @@ const PALETTE = [
   { color: '#C4A57A', light: '#F5EFE3', dark: '#8A7242' }, // warm tan
   { color: '#B8AA7A', light: '#F5F0E3', dark: '#8A7A42' }, // khaki
   { color: '#C4B450', light: '#F8F4DC', dark: '#8A7A28' }, // warm gold
+  { color: '#BCBC58', light: '#F6F6DC', dark: '#7A7A28' }, // warm yellow
   { color: '#A8BC60', light: '#F2F6E2', dark: '#6A8430' }, // chartreuse
   { color: '#9BB87A', light: '#EFF5E9', dark: '#5A8A42' }, // yellow-green
   { color: '#8A9E7C', light: '#EDF3E9', dark: '#52724A' }, // sage
   { color: '#7AB860', light: '#EBF5E2', dark: '#4A8430' }, // fresh green
+  { color: '#5AB060', light: '#E4F4E6', dark: '#2A7030' }, // true green
   { color: '#6AAA78', light: '#E8F5EE', dark: '#387A48' }, // soft mint
   { color: '#5A9A7C', light: '#E6F4ED', dark: '#2A6A4C' }, // forest
   { color: '#60B89A', light: '#E2F5EE', dark: '#307A6A' }, // seafoam
@@ -132,6 +134,7 @@ const PALETTE = [
   { color: '#7A6AB8', light: '#EAEAF8', dark: '#3A3A8A' }, // indigo
   { color: '#9A7AB8', light: '#F0ECF8', dark: '#624A8A' }, // purple
   { color: '#A270BC', light: '#F2E8F8', dark: '#723A8A' }, // violet
+  { color: '#BC68B0', light: '#F6EAF8', dark: '#843880' }, // orchid
   { color: '#B87A9A', light: '#F5EAF0', dark: '#8A4A72' }, // mauve
   { color: '#C46884', light: '#F5E8EE', dark: '#8A3A56' }, // warm rose
 ]
