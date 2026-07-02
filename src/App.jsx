@@ -20,9 +20,13 @@ import {
   List, Star, Bookmark, Flag, Home, Music, Dumbbell, BookOpen,
   Coffee, Camera, Plane, Heart, ShoppingBag, Leaf, Utensils, Laptop,
   Sparkles, Bike, Baby, Pill, PawPrint, Sunrise, Wallet, Globe,
+  TreePine, Mountain, Waves, Sun, Cloud, Flame, Flower2, Tent,
+  Briefcase, GraduationCap, Building2, Code, Pen, Paintbrush, Scissors, Wrench,
+  Gift, Trophy, Gamepad2, Film, Headphones, Car, Bus, Train,
   // UI icons
   Plus, Search, Pencil, X, GripVertical, Settings, ChevronDown,
   Square, SquareCheck, ListPlus, ListChecks, Trash2, MoreHorizontal, CheckCircle2,
+  Moon, KeyRound,
 } from 'lucide-react'
 
 // ── Icon registry ──────────────────────────────────────────────────────────
@@ -57,18 +61,44 @@ const ICON_MAP = {
   'sunrise':         Sunrise,
   'wallet':          Wallet,
   'globe':           Globe,
+  'tree-pine':       TreePine,
+  'mountain':        Mountain,
+  'waves':           Waves,
+  'sun':             Sun,
+  'cloud':           Cloud,
+  'flame':           Flame,
+  'flower-2':        Flower2,
+  'tent':            Tent,
+  'briefcase':       Briefcase,
+  'graduation-cap':  GraduationCap,
+  'building-2':      Building2,
+  'code':            Code,
+  'pen':             Pen,
+  'paintbrush':      Paintbrush,
+  'scissors':        Scissors,
+  'wrench':          Wrench,
+  'gift':            Gift,
+  'trophy':          Trophy,
+  'gamepad-2':       Gamepad2,
+  'film':            Film,
+  'headphones':      Headphones,
+  'car':             Car,
+  'bus':             Bus,
+  'train':           Train,
 }
 
-// Icons available to choose when creating a new list
+// Icons available to choose when creating a new category
 const CUSTOM_ICONS = [
   'list', 'star', 'bookmark', 'flag', 'home', 'heart',
   'music', 'dumbbell', 'book-open', 'coffee', 'camera', 'plane',
   'shopping-bag', 'leaf', 'utensils', 'laptop', 'sparkles', 'bike',
   'baby', 'pill', 'paw-print', 'sunrise', 'wallet', 'globe',
+  'tree-pine', 'mountain', 'waves', 'sun', 'cloud', 'flame', 'flower-2', 'tent',
+  'briefcase', 'graduation-cap', 'building-2', 'code', 'pen', 'paintbrush', 'scissors', 'wrench',
+  'gift', 'trophy', 'gamepad-2', 'film', 'headphones', 'car', 'bus', 'train',
 ]
 
 // ── Constants ──────────────────────────────────────────────────────────────
-
 
 const DEFAULT_CATEGORIES = [
   { id: 'general',   name: 'General',   iconName: 'clipboard-list',  color: '#7C9A7E', light: '#EEF3EC', dark: '#4A6B4C', custom: false },
@@ -90,6 +120,10 @@ const PALETTE = [
   { color: '#9BB87A', light: '#EFF5E9', dark: '#5A8A42' },
   { color: '#7A8EB8', light: '#EAF0F6', dark: '#4A5E8A' },
   { color: '#B8AA7A', light: '#F5F0E3', dark: '#8A7A42' },
+  { color: '#C48A60', light: '#F6EEE4', dark: '#8A5A38' },
+  { color: '#9A7AB8', light: '#F0ECF8', dark: '#624A8A' },
+  { color: '#5A9A7C', light: '#E6F4ED', dark: '#2A6A4C' },
+  { color: '#7A6AB8', light: '#EAEAF8', dark: '#3A3A8A' },
 ]
 
 const SEED = [
@@ -173,6 +207,19 @@ export default function App() {
   const [movePicker, setMovePicker]       = useState(false)
   const [completedOpen, setCompletedOpen]       = useState(false)
   const [completedClosing, setCompletedClosing] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('darkMode')
+      if (saved !== null) return JSON.parse(saved)
+    } catch {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
+  })
+
+  useEffect(() => {
+    if (darkMode) document.documentElement.classList.add('dark')
+    else document.documentElement.classList.remove('dark')
+    localStorage.setItem('darkMode', JSON.stringify(darkMode))
+  }, [darkMode])
 
   const closeCompleted = () => {
     setCompletedClosing(true)
@@ -508,7 +555,7 @@ export default function App() {
     const prevCats = categories
     setCategories(p => [...p, newCat])
     supabase.from('categories').insert({ ...catToDb(newCat, categories.length), user_id: user.id })
-      .then(({ error }) => { if (error) { setCategories(prevCats); showToast('Failed to create list.') } })
+      .then(({ error }) => { if (error) { setCategories(prevCats); showToast('Failed to create category.') } })
     return id
   }
 
@@ -522,7 +569,7 @@ export default function App() {
     if (updates.light    !== undefined) dbUp.light     = updates.light
     if (updates.dark     !== undefined) dbUp.dark      = updates.dark
     supabase.from('categories').update(dbUp).eq('id', id)
-      .then(({ error }) => { if (error) { setCategories(prevCats); showToast('Failed to update list.') } })
+      .then(({ error }) => { if (error) { setCategories(prevCats); showToast('Failed to update category.') } })
   }
 
   const deleteCategory = id => {
@@ -616,12 +663,12 @@ export default function App() {
   const allNavItems = [...categories]
 
   if (authLoading || (user && loading)) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F8F6F2]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-base)]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
       <div className="flex flex-col items-center gap-3">
         <div className="w-10 h-10 rounded-2xl bg-[#EEF3EC] flex items-center justify-center animate-pulse">
           <ClipboardList size={20} style={{ color: '#7C9A7E' }} strokeWidth={1.75} />
         </div>
-        <p className="text-[13px] text-[#9BAA9C]">Loading…</p>
+        <p className="text-[13px] text-[var(--text-3)]">Loading…</p>
       </div>
     </div>
   )
@@ -629,10 +676,10 @@ export default function App() {
   if (!user) return <AuthScreen />
 
   return (
-    <div className="min-h-screen flex bg-[#F8F6F2]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="min-h-screen flex bg-[var(--bg-base)]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
 
       {/* ════════ DESKTOP SIDEBAR ════════ */}
-      <aside className="hidden md:flex w-60 shrink-0 flex-col bg-[#ECF0EA] border-r border-[#D5E2D4]">
+      <aside className="hidden md:flex w-60 shrink-0 flex-col bg-[var(--bg-nav)] border-r border-[var(--border-nav)]">
         <div className="px-5 pt-7 pb-4">
           <h1 className="text-xs font-semibold tracking-widest text-[#7C9A7E] uppercase">My Lists</h1>
         </div>
@@ -646,9 +693,9 @@ export default function App() {
                 key={c.id}
                 onClick={() => navTo(c.id)}
                 className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
-                style={on ? { backgroundColor: c.color + '22', color: c.dark } : { color: '#637265' }}
+                style={on ? { backgroundColor: c.color + '22', color: c.dark } : { color: 'var(--text-2)' }}
               >
-                <CatIcon cat={c} size={16} style={{ color: on ? c.color : '#9BAA9C', flexShrink: 0 }} />
+                <CatIcon cat={c} size={16} style={{ color: on ? c.color : 'var(--text-3)', flexShrink: 0 }} />
                 <span className={`flex-1 text-[13px] ${on ? 'font-semibold' : 'font-medium'}`}>{c.name}</span>
                 {count > 0 && (
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: c.color }}>{count}</span>
@@ -663,9 +710,9 @@ export default function App() {
           <button
             onClick={() => navTo('starred')}
             className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all"
-            style={isStarred ? { backgroundColor: '#C4A93A22', color: '#8A7020' } : { color: '#637265' }}
+            style={isStarred ? { backgroundColor: '#C4A93A22', color: '#8A7020' } : { color: 'var(--text-2)' }}
           >
-            <Star size={16} fill={isStarred ? 'currentColor' : 'none'} style={{ color: isStarred ? '#C4A93A' : '#9BAA9C', flexShrink: 0 }} />
+            <Star size={16} fill={isStarred ? 'currentColor' : 'none'} style={{ color: isStarred ? '#C4A93A' : 'var(--text-3)', flexShrink: 0 }} />
             <span className={`flex-1 text-[13px] ${isStarred ? 'font-semibold' : 'font-medium'}`}>Starred</span>
             {starredTasks.length > 0 && (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor: '#C4A93A' }}>{starredTasks.length}</span>
@@ -673,15 +720,15 @@ export default function App() {
           </button>
         </div>
 
-        <div className="mx-4 py-3 border-t border-[#D5E2D4] flex items-center justify-between">
-          <p className="text-[11px] text-[#9BAA9C]">{tasks.filter(t => !t.archived).length} active tasks</p>
+        <div className="mx-4 py-3 border-t border-[var(--border-nav)] flex items-center justify-between">
+          <p className="text-[11px] text-[var(--text-3)]">{tasks.filter(t => !t.archived).length} active tasks</p>
           <div className="flex items-center gap-1">
             <button
               onClick={() => {
                 if (searchOpen) { setSearch(''); setSearchOpen(false) }
                 else { if (isSettings) navTo(prevActive); setSearchOpen(true) }
               }}
-              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all text-[#9BAA9C] hover:text-[#637265] hover:bg-[#E5EBE4]"
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all text-[var(--text-3)] hover:text-[var(--text-2)] hover:bg-[#E5EBE4]"
               style={searchOpen ? { backgroundColor: themeColor + '22', color: themeDark } : {}}
               title="Search"
             >
@@ -689,7 +736,7 @@ export default function App() {
             </button>
             <button
               onClick={() => navTo('settings')}
-              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all text-[#9BAA9C] hover:text-[#637265] hover:bg-[#E5EBE4]"
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition-all text-[var(--text-3)] hover:text-[var(--text-2)] hover:bg-[#E5EBE4]"
               style={isSettings ? { backgroundColor: themeColor + '22', color: themeDark } : {}}
               title="Settings"
             >
@@ -718,7 +765,7 @@ export default function App() {
                 </div>
               </div>
             ) : isSettings ? (
-              <h2 className="text-[28px] font-semibold text-[#3D4A3E]">Settings</h2>
+              <h2 className="text-[28px] font-semibold text-[var(--text-1)]">Settings</h2>
             ) : isStarred ? (
               <h2 className="text-[28px] font-semibold" style={{ color: '#8A7020' }}>Starred</h2>
             ) : <div />}
@@ -774,27 +821,29 @@ export default function App() {
               onSignOut={() => supabase.auth.signOut()}
               clearingIds={clearingIds}
               clearingOrderMap={clearingOrderMap}
+              darkMode={darkMode}
+              onToggleDark={() => setDarkMode(d => !d)}
             />
           )}
 
           {/* Search input — visible when searchOpen and not on Settings */}
           {!isSettings && searchOpen && (
             <div className="mb-5 relative field-expand">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#9BAA9C]" />
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-3)]" />
               <input
                 autoFocus
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Escape') { setSearch(''); setSearchOpen(false) } }}
                 placeholder="Search all tasks…"
-                className="w-full pl-10 pr-9 py-3 rounded-xl bg-white border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm transition-all"
-                style={{ borderColor: isSearching ? '#7C9A7EBB' : '#DBE8DA', fontSize: 16 }}
+                className="w-full pl-10 pr-9 py-3 rounded-xl bg-[var(--bg-surface)] border text-[var(--text-1)] placeholder-[var(--text-5)] outline-none shadow-sm transition-all"
+                style={{ borderColor: isSearching ? '#7C9A7EBB' : 'var(--border-inp)', fontSize: 16 }}
                 onFocus={e => (e.target.style.borderColor = '#7C9A7EBB')}
-                onBlur={e  => (e.target.style.borderColor = isSearching ? '#7C9A7EBB' : '#DBE8DA')}
+                onBlur={e  => (e.target.style.borderColor = isSearching ? '#7C9A7EBB' : 'var(--border-inp)')}
               />
               <button
                 onClick={() => { setSearch(''); setSearchOpen(false) }}
-                className="absolute right-0 top-0 w-11 h-full flex items-center justify-center text-[#9BAA9C] hover:text-[#637265]"
+                className="absolute right-0 top-0 w-11 h-full flex items-center justify-center text-[var(--text-3)] hover:text-[var(--text-2)]"
               >
                 <X size={16} />
               </button>
@@ -805,11 +854,17 @@ export default function App() {
           {isSearching && (
             <>
               <div className="mb-4">
-                <h2 className="text-lg font-semibold text-[#5A6B5C]">"{search}"</h2>
-                <p className="text-xs text-[#9BAA9C] mt-0.5">{searchResults.length} task{searchResults.length !== 1 ? 's' : ''} found</p>
+                <h2 className="text-lg font-semibold text-[var(--text-med)]">"{search}"</h2>
+                <p className="text-xs text-[var(--text-3)] mt-0.5">{searchResults.length} task{searchResults.length !== 1 ? 's' : ''} found</p>
               </div>
               {searchResults.length === 0
-                ? <p className="text-center text-sm text-[#B5C4B6] py-12">No tasks match that search.</p>
+                ? <div className="text-center py-14">
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-[var(--bg-subtle)]">
+                      <Search size={26} className="text-[var(--text-4)]" />
+                    </div>
+                    <p className="text-sm font-medium text-[var(--text-3)]">No results</p>
+                    <p className="text-[13px] text-[var(--text-4)] mt-1">Try a different search term.</p>
+                  </div>
                 : (
                   <div className="space-y-2">
                     {searchResults.map(t => {
@@ -839,15 +894,16 @@ export default function App() {
                 <Star size={22} style={{ color: '#C4A93A' }} strokeWidth={1.75} />
                 <div>
                   <h2 className="text-xl font-semibold" style={{ color: '#8A7020' }}>Starred</h2>
-                  <p className="text-xs text-[#9BAA9C] mt-0.5">{starredTasks.length} starred</p>
+                  <p className="text-xs text-[var(--text-3)] mt-0.5">{starredTasks.length} starred</p>
                 </div>
               </div>
               {starredTasks.length === 0
                 ? <div className="text-center py-14">
-                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-[#FBF6E3]">
-                      <Star size={28} style={{ color: '#C4A93A', opacity: 0.5 }} />
+                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-[var(--bg-starred)]">
+                      <Star size={28} style={{ color: '#C4A93A', opacity: 0.6 }} />
                     </div>
-                    <p className="text-sm text-[#B5C4B6]">No starred tasks yet — tap the star on any task.</p>
+                    <p className="text-sm font-medium text-[var(--text-3)]">No starred tasks</p>
+                    <p className="text-[13px] text-[var(--text-4)] mt-1">Tap the ★ on any task to star it.</p>
                   </div>
                 : categories.map(c => {
                     const items = starredTasks.filter(t => t.category === c.id)
@@ -897,10 +953,10 @@ export default function App() {
                   onChange={e => setText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Escape') setText('') }}
                   placeholder={`New task in ${cat.name}…`}
-                  className="w-full px-4 py-3 rounded-xl bg-white border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm transition-all"
-                  style={{ borderColor: '#DBE8DA', fontSize: 15 }}
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--bg-surface)] border text-[var(--text-1)] placeholder-[var(--text-5)] outline-none shadow-sm transition-all"
+                  style={{ borderColor: 'var(--border-inp)', fontSize: 15 }}
                   onFocus={e => (e.target.style.borderColor = cat.color + 'BB')}
-                  onBlur={e => (e.target.style.borderColor = '#DBE8DA')}
+                  onBlur={e => (e.target.style.borderColor = 'var(--border-inp)')}
                 />
               </form>
 
@@ -941,11 +997,20 @@ export default function App() {
                   <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ backgroundColor: cat.light }}>
                     <CatIcon cat={cat} size={28} style={{ color: cat.color, opacity: 0.5 }} />
                   </div>
-                  <p className="text-sm text-[#B5C4B6]">
-                    {tasks.filter(t => t.category === active && t.archived).length > 0
-                      ? 'All done! Scroll down to see completed tasks.'
-                      : <><span className="md:hidden">No tasks yet — tap + to add one!</span><span className="hidden md:inline">No tasks yet — add one above!</span></>}
-                  </p>
+                  {tasks.filter(t => t.category === active && t.archived).length > 0 ? (
+                    <>
+                      <p className="text-sm font-medium text-[var(--text-3)]">All done!</p>
+                      <p className="text-[13px] text-[var(--text-4)] mt-1">Scroll down to see completed tasks.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-[var(--text-3)]">Nothing here yet</p>
+                      <p className="text-[13px] text-[var(--text-4)] mt-1">
+                        <span className="md:hidden">Tap + below to add your first task.</span>
+                        <span className="hidden md:inline">Add a task using the field above.</span>
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : currentSort === 'manual' ? (
                 <DndContext
@@ -1018,7 +1083,7 @@ export default function App() {
                       <div className="flex-1 h-px bg-[#E8EEE7]" />
                       <button
                         onClick={() => { if (completedOpen || completedClosing) closeCompleted(); else setCompletedOpen(true) }}
-                        className="flex items-center gap-1.5 text-[11px] font-semibold text-[#9BAA9C] hover:text-[#637265] transition-colors py-1 px-2 rounded-lg hover:bg-[#F0F4EF]"
+                        className="flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-3)] hover:text-[var(--text-2)] transition-colors py-1 px-2 rounded-lg hover:bg-[var(--bg-subtle)]"
                       >
                         <ChevronDown size={12} style={{ transform: completedOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
                         Completed ({catArchived.length})
@@ -1071,20 +1136,20 @@ export default function App() {
 
       {/* ════════ BULK ACTION BAR ════════ */}
       {(selectMode || selectBarClosing) && cat && (
-        <div className={`fixed bottom-0 inset-x-0 z-30 bg-white border-t border-[#E0EAE0] shadow-lg md:left-60 bulk-bar ${selectBarClosing ? 'bulk-bar-out' : 'bulk-bar-in'}`}>
+        <div className={`fixed bottom-0 inset-x-0 z-30 bg-[var(--bg-surface)] border-t border-[var(--border)] shadow-lg md:left-60 bulk-bar ${selectBarClosing ? 'bulk-bar-out' : 'bulk-bar-in'}`}>
           <div className="flex flex-col items-center gap-2 px-4 pt-3 max-w-xl mx-auto w-full">
-            <span className="text-[13px] font-semibold text-[#3D4A3E]">
+            <span className="text-[13px] font-semibold text-[var(--text-1)]">
               {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Tap tasks to select'}
             </span>
             <div className="flex items-center justify-center gap-2 w-full">
               {selectedIds.size > 0 && (
                 <div className="flex items-center gap-2 bulk-actions-in">
                   <button onClick={() => bulkArchive(selectedIds)} className="px-3 py-2 rounded-xl text-[12px] font-semibold text-white shadow-sm" style={{ backgroundColor: cat.color }}>Complete</button>
-                  <button onClick={() => setMovePicker(true)} className="px-3 py-2 rounded-xl text-[12px] font-semibold bg-[#EEF3EC] text-[#3D4A3E]">Move</button>
+                  <button onClick={() => setMovePicker(true)} className="px-3 py-2 rounded-xl text-[12px] font-semibold bg-[#EEF3EC] text-[var(--text-1)]">Move</button>
                   <button onClick={() => bulkRemove(selectedIds)} className="px-3 py-2 rounded-xl text-[12px] font-semibold bg-rose-50 text-rose-500 flex items-center gap-1"><Trash2 size={12} />Delete</button>
                 </div>
               )}
-              <button onClick={exitSelectMode} className="px-3 py-2 text-[12px] font-medium text-[#9BAA9C]">Cancel</button>
+              <button onClick={exitSelectMode} className="px-3 py-2 text-[12px] font-medium text-[var(--text-3)]">Cancel</button>
             </div>
           </div>
         </div>
@@ -1093,19 +1158,19 @@ export default function App() {
       {/* ════════ MOVE PICKER ════════ */}
       {movePicker && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)' }} onClick={() => setMovePicker(false)}>
-          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden view-enter" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-sm bg-[var(--bg-surface)] rounded-2xl shadow-xl overflow-hidden view-enter" onClick={e => e.stopPropagation()}>
             <div className="px-5 pt-5 pb-3">
-              <p className="text-[15px] font-semibold text-[#3D4A3E]">Move {selectedIds.size} task{selectedIds.size !== 1 ? 's' : ''} to…</p>
+              <p className="text-[15px] font-semibold text-[var(--text-1)]">Move {selectedIds.size} task{selectedIds.size !== 1 ? 's' : ''} to…</p>
             </div>
             {categories.filter(c => c.id !== active).map(c => (
-              <button key={c.id} onClick={() => bulkMove(selectedIds, c.id)} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-[#F8F6F2] transition-colors border-t border-[#F0F0EE]">
+              <button key={c.id} onClick={() => bulkMove(selectedIds, c.id)} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-[var(--bg-base)] transition-colors border-t border-[var(--border-mod)]">
                 <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: c.light }}>
                   <CatIcon cat={c} size={16} style={{ color: c.color }} />
                 </div>
-                <span className="text-[14px] font-medium text-[#3D4A3E]">{c.name}</span>
+                <span className="text-[14px] font-medium text-[var(--text-1)]">{c.name}</span>
               </button>
             ))}
-            <button onClick={() => setMovePicker(false)} className="w-full py-4 text-[13px] font-medium text-[#9BAA9C] border-t border-[#F0F0EE]">Cancel</button>
+            <button onClick={() => setMovePicker(false)} className="w-full py-4 text-[13px] font-medium text-[var(--text-3)] border-t border-[var(--border-mod)]">Cancel</button>
           </div>
         </div>
       )}
@@ -1126,10 +1191,10 @@ export default function App() {
         <div className="md:hidden fixed inset-0 z-40" onClick={() => { setMobileAddOpen(false); setText('') }}>
           {/* White fill to cover the iOS keyboard toolbar gap */}
           {kbOffset > 0 && (
-            <div className="absolute inset-x-0 bottom-0 bg-white" style={{ height: kbOffset + 1 }} />
+            <div className="absolute inset-x-0 bottom-0 bg-[var(--bg-surface)]" style={{ height: kbOffset + 1 }} />
           )}
           <div
-            className="absolute inset-x-0 bg-white rounded-t-2xl border-t border-[#E0EAE0] sheet-up"
+            className="absolute inset-x-0 bg-[var(--bg-surface)] rounded-t-2xl border-t border-[var(--border)] sheet-up"
             style={{
               bottom: kbOffset,
               paddingBottom: kbOffset > 0 ? '20px' : 'calc(env(safe-area-inset-bottom) + 20px)',
@@ -1150,7 +1215,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => { setMobileAddOpen(false); setText('') }}
-                className="text-[14px] font-medium text-[#9BAA9C] active:opacity-60 px-1"
+                className="text-[14px] font-medium text-[var(--text-3)] active:opacity-60 px-1"
               >Cancel</button>
             </div>
 
@@ -1163,10 +1228,10 @@ export default function App() {
                 onKeyDown={e => { if (e.key === 'Escape') { setText(''); setMobileAddOpen(false) } }}
                 placeholder="New task…"
                 enterKeyHint="go"
-                className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm transition-colors"
-                style={{ borderColor: '#DBE8DA', fontSize: 16 }}
+                className="w-full px-4 py-3 rounded-xl border text-[var(--text-1)] placeholder-[var(--text-5)] outline-none shadow-sm transition-colors"
+                style={{ borderColor: 'var(--border-inp)', fontSize: 16 }}
                 onFocus={e => (e.target.style.borderColor = cat.color + 'BB')}
-                onBlur={e => (e.target.style.borderColor = '#DBE8DA')}
+                onBlur={e => (e.target.style.borderColor = 'var(--border-inp)')}
               />
             </form>
           </div>
@@ -1175,12 +1240,12 @@ export default function App() {
 
       {/* ════════ UPDATE BANNER ════════ */}
       {needRefresh && (
-        <div className="fixed top-4 left-4 right-4 md:left-auto md:right-5 md:w-80 z-50 view-enter">
-          <div className="bg-[#3D4A3E] text-white text-[13px] font-medium px-4 py-3 rounded-xl shadow-lg flex items-center justify-between gap-3">
-            <span>New version available</span>
+        <div className="fixed bottom-36 md:bottom-auto md:top-4 left-4 right-4 md:left-auto md:right-5 md:w-80 z-50 view-enter">
+          <div className="bg-[#3D4A3E] text-white px-4 py-3 rounded-xl shadow-lg flex items-center justify-between gap-3">
+            <span className="text-[13px] font-semibold">Update available</span>
             <button
               onClick={() => updateServiceWorker(true)}
-              className="shrink-0 bg-white text-[#3D4A3E] text-[12px] font-semibold px-3 py-1.5 rounded-lg active:opacity-70 transition-opacity"
+              className="shrink-0 bg-[var(--bg-surface)] text-[var(--text-1)] text-[12px] font-semibold px-3 py-1.5 rounded-lg active:opacity-70 transition-opacity"
               style={{ touchAction: 'manipulation' }}
             >
               Update
@@ -1200,7 +1265,7 @@ export default function App() {
 
       {/* ════════ MOBILE BOTTOM NAV ════════ */}
       <nav
-        className="md:hidden fixed bottom-0 inset-x-0 bg-[#ECF0EA] border-t border-[#D5E2D4] z-10 flex"
+        className="md:hidden fixed bottom-0 inset-x-0 bg-[var(--bg-nav)] border-t border-[var(--border-nav)] z-10 flex"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)', paddingTop: '14px', paddingRight: 'env(safe-area-inset-right)' }}
       >
         <div className="relative flex-1 overflow-hidden">
@@ -1215,7 +1280,7 @@ export default function App() {
                 key={c.id}
                 onClick={() => navTo(c.id)}
                 className="flex flex-col items-center justify-center flex-1 min-w-[68px] pt-2 pb-2 px-2 relative transition-colors"
-                style={{ color: on ? c.color : '#9BAA9C' }}
+                style={{ color: on ? c.color : 'var(--text-3)' }}
               >
                 {on && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full" style={{ backgroundColor: c.color }} />}
                 <CatIcon cat={c} size={24} strokeWidth={on ? 2 : 1.6} />
@@ -1232,7 +1297,7 @@ export default function App() {
             )
           })}
           </div>
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10" style={{ background: 'linear-gradient(to right, transparent, #ECF0EA)' }} />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10" style={{ background: 'linear-gradient(to right, transparent, var(--bg-nav))' }} />
         </div>
       </nav>
     </div>
@@ -1249,17 +1314,17 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
       onClick={onCancel}
     >
       <div
-        className="w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden view-enter"
+        className="w-full max-w-sm bg-[var(--bg-surface)] rounded-2xl shadow-xl overflow-hidden view-enter"
         onClick={e => e.stopPropagation()}
       >
         <div className="px-5 pt-5 pb-4">
-          <p className="text-[15px] font-semibold text-[#3D4A3E] mb-1">Delete task?</p>
-          <p className="text-[13px] text-[#9BAA9C] leading-snug">"{message}"</p>
+          <p className="text-[15px] font-semibold text-[var(--text-1)] mb-1">Delete task?</p>
+          <p className="text-[13px] text-[var(--text-3)] leading-snug">"{message}"</p>
         </div>
-        <div className="flex border-t border-[#F0F0EE]">
+        <div className="flex border-t border-[var(--border-mod)]">
           <button
             onClick={onCancel}
-            className="flex-1 py-3.5 text-[14px] font-medium text-[#9BAA9C] hover:bg-[#F8F6F2] transition-colors border-r border-[#F0F0EE]"
+            className="flex-1 py-3.5 text-[14px] font-medium text-[var(--text-3)] hover:bg-[var(--bg-base)] transition-colors border-r border-[var(--border-mod)]"
           >
             Keep
           </button>
@@ -1337,16 +1402,16 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
   const doneSubs = subtasks.filter(s => s.done).length
 
   return (
-    <aside className={`hidden md:flex flex-col w-[400px] shrink-0 bg-white border-l border-[#E0EAE0] overflow-hidden ${isClosing ? 'slide-to-right' : 'slide-from-right'}`}>
+    <aside className={`hidden md:flex flex-col w-[400px] shrink-0 bg-[var(--bg-surface)] border-l border-[var(--border)] overflow-hidden ${isClosing ? 'slide-to-right' : 'slide-from-right'}`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F0F4EF] shrink-0">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border-sub)] shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: cat.light }}>
             <CatIcon cat={cat} size={12} style={{ color: cat.color }} />
           </div>
           <span className="text-[12px] font-semibold truncate" style={{ color: cat.color }}>{cat.name}</span>
         </div>
-        <button onClick={() => triggerClose(onClose)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] hover:text-[#3D4A3E] hover:bg-[#F0F4EF] transition-colors shrink-0">
+        <button onClick={() => triggerClose(onClose)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-3)] hover:text-[var(--text-1)] hover:bg-[var(--bg-subtle)] transition-colors shrink-0">
           <X size={16} />
         </button>
       </div>
@@ -1365,14 +1430,14 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
             }}
             onBlur={saveTitle}
             rows={3}
-            className="w-full font-semibold text-[#3D4A3E] outline-none resize-none border-b-2 pb-1 bg-transparent leading-snug mb-4"
+            className="w-full font-semibold text-[var(--text-1)] outline-none resize-none border-b-2 pb-1 bg-transparent leading-snug mb-4"
             style={{ borderColor: cat.color, fontSize: 20 }}
           />
         ) : (
           <h2
             onDoubleClick={startEditTitle}
             title="Double-click to edit title"
-            className="text-[20px] font-semibold text-[#3D4A3E] leading-snug mb-4 cursor-default"
+            className="text-[20px] font-semibold text-[var(--text-1)] leading-snug mb-4 cursor-default"
           >{task.text}</h2>
         )}
 
@@ -1383,16 +1448,16 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
               <button onClick={() => { setPendingDone(false); triggerClose(() => onArchive(task.id)) }} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold text-white transition-colors" style={{ backgroundColor: cat.color }}>
                 <CheckCircle2 size={14} /> Done
               </button>
-              <button onClick={() => setPendingDone(false)} className="px-3 py-1.5 rounded-lg text-[13px] font-medium bg-[#F0F4EF] text-[#637265] hover:bg-[#E4EAE3] transition-colors">
+              <button onClick={() => setPendingDone(false)} className="px-3 py-1.5 rounded-lg text-[13px] font-medium bg-[var(--bg-subtle)] text-[var(--text-2)] hover:bg-[var(--bg-pressed)] transition-colors">
                 Cancel
               </button>
             </>
           ) : (
-            <button onClick={() => setPendingDone(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium bg-[#F0F4EF] text-[#637265] hover:bg-[#E4EAE3] transition-colors">
+            <button onClick={() => setPendingDone(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium bg-[var(--bg-subtle)] text-[var(--text-2)] hover:bg-[var(--bg-pressed)] transition-colors">
               <CheckCircle2 size={14} /> Mark done
             </button>
           )}
-          <button title={task.starred ? 'Unstar' : 'Star'} onClick={() => onToggleStar(task.id)} className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
+          <button title={task.starred ? 'Unstar' : 'Star'} onClick={() => onToggleStar(task.id)} className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A]' : 'text-[var(--icon-dim)] hover:text-[#C4A93A]'}`}>
             <Star size={15} fill={task.starred ? 'currentColor' : 'none'} />
           </button>
           <button title="Delete" onClick={() => setConfirmDelete(true)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 transition-colors">
@@ -1401,18 +1466,18 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
         </div>
 
         {/* Subtasks */}
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9BAA9C] mb-3">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-3)] mb-3">
           Subtasks{subtasks.length > 0 && ` · ${doneSubs}/${subtasks.length}`}
         </p>
 
         {subtasks.length > 0 && (
           <div className="space-y-1 mb-3">
             {subtasks.map(s => (
-              <div key={s.id} className="group/dp flex items-start gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[#F8F6F2] transition-colors">
+              <div key={s.id} className="group/dp flex items-start gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[var(--bg-base)] transition-colors">
                 <button
                   onClick={() => onToggleSubtask(task.id, s.id)}
                   className="mt-0.5 shrink-0 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all active:scale-90"
-                  style={{ borderColor: s.done ? cat.color : '#C0D0BF', backgroundColor: s.done ? cat.color : 'transparent' }}
+                  style={{ borderColor: s.done ? cat.color : 'var(--icon-dim)', backgroundColor: s.done ? cat.color : 'transparent' }}
                 >
                   {s.done && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>}
                 </button>
@@ -1425,13 +1490,13 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
                       if (e.key === 'Escape') setEditingSubId(null)
                     }}
                     onBlur={() => { if (editSubText.trim()) onEditSubtask(task.id, s.id, editSubText); setEditingSubId(null) }}
-                    className="flex-1 text-[#3D4A3E] outline-none bg-transparent border-b"
+                    className="flex-1 text-[var(--text-1)] outline-none bg-transparent border-b"
                     style={{ borderColor: cat.color, fontSize: 14 }}
                   />
                 ) : (
                   <span
                     onDoubleClick={() => { setEditingSubId(s.id); setEditSubText(s.text) }}
-                    className={`flex-1 leading-snug select-none cursor-default ${s.done ? 'line-through text-[#9BAA9C]' : 'text-[#3D4A3E]'}`}
+                    className={`flex-1 leading-snug select-none cursor-default ${s.done ? 'line-through text-[var(--text-3)]' : 'text-[var(--text-1)]'}`}
                     style={{ fontSize: 14 }}
                   >{s.text}</span>
                 )}
@@ -1449,14 +1514,14 @@ function TaskDetailPanel({ task, cat, onClose, onArchive, onDelete, onToggleStar
         )}
 
         <form onSubmit={handleAddSubtask}>
-          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed hover:bg-[#F8F6F2] transition-colors" style={{ borderColor: cat.color + '55' }}>
+          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-dashed hover:bg-[var(--bg-base)] transition-colors" style={{ borderColor: cat.color + '55' }}>
             <Plus size={14} style={{ color: cat.color, opacity: 0.7, flexShrink: 0 }} />
             <input
               ref={subtaskRef}
               value={newSubtask}
               onChange={e => setNewSubtask(e.target.value)}
               placeholder="Add subtask…"
-              className="flex-1 text-[14px] text-[#3D4A3E] placeholder-[#C0CCC0] outline-none bg-transparent"
+              className="flex-1 text-[14px] text-[var(--text-1)] placeholder-[var(--text-6)] outline-none bg-transparent"
             />
             {newSubtask.trim() && (
               <button type="submit" className="text-[11px] font-semibold px-2 py-0.5 rounded-lg text-white shrink-0" style={{ backgroundColor: cat.color }}>Add</button>
@@ -1643,7 +1708,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
     <>
       <div
         onClick={handleCardClick}
-        className={`relative group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border shadow-sm transition-all ${
+        className={`relative group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-[var(--bg-surface)] border shadow-sm transition-all ${
           !overlay && onOpenDetail && !completing && !deleting ? 'md:cursor-pointer' : ''
         } ${
           completing  ? 'task-completing'
@@ -1651,12 +1716,12 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
           : isDragging ? 'border-[#7C9A7E] shadow-lg opacity-50 rotate-1 scale-[1.02]'
           : isSelected ? 'border-[#7C9A7E]'
           : isDetailOpen ? 'shadow'
-          : 'border-[#E0EAE0] md:hover:border-[#C8DCC8] md:hover:shadow'
+          : 'border-[var(--border)] md:hover:border-[var(--border-hov)] md:hover:shadow'
         }`}
         style={
           isSelected ? { borderColor: cat.color }
-          : isDetailOpen && !completing && !deleting ? { borderColor: cat.color, ...(task.starred ? { backgroundColor: '#FEFBF0' } : {}) }
-          : task.starred && !completing && !deleting ? { backgroundColor: '#FEFBF0' }
+          : isDetailOpen && !completing && !deleting ? { borderColor: cat.color, ...(task.starred ? { backgroundColor: 'var(--bg-starred)' } : {}) }
+          : task.starred && !completing && !deleting ? { backgroundColor: 'var(--bg-starred)' }
           : undefined
         }
       >
@@ -1669,7 +1734,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
         {selectMode && (
           <button onClick={() => onToggleSelect(task.id)} className="shrink-0 -m-1 p-1 transition-all active:scale-90 checkbox-in">
             <span key={String(isSelected)} className="check-pop">
-              {isSelected ? <SquareCheck size={18} style={{ color: cat.color }} /> : <Square size={18} className="text-[#C0D0BF]" />}
+              {isSelected ? <SquareCheck size={18} style={{ color: cat.color }} /> : <Square size={18} className="text-[var(--icon-dim)]" />}
             </span>
           </button>
         )}
@@ -1690,9 +1755,9 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
           >
             <div
               className={`w-[22px] h-[22px] md:w-[20px] md:h-[20px] rounded-full border-2 transition-all group-hover/check:scale-110 ${completing || pendingComplete ? 'scale-110' : ''}`}
-              style={{ borderColor: completing || pendingComplete ? cat.color : '#C0D0BF', backgroundColor: completing || pendingComplete ? cat.color + '33' : 'transparent' }}
+              style={{ borderColor: completing || pendingComplete ? cat.color : 'var(--icon-dim)', backgroundColor: completing || pendingComplete ? cat.color + '33' : 'transparent' }}
               onMouseEnter={e => { if (!completing && !pendingComplete) { e.currentTarget.style.borderColor = cat.color; e.currentTarget.style.backgroundColor = cat.color + '22' } }}
-              onMouseLeave={e => { if (!completing && !pendingComplete) { e.currentTarget.style.borderColor = '#C0D0BF'; e.currentTarget.style.backgroundColor = 'transparent' } }}
+              onMouseLeave={e => { if (!completing && !pendingComplete) { e.currentTarget.style.borderColor = 'var(--icon-dim)'; e.currentTarget.style.backgroundColor = 'transparent' } }}
             />
           </button>
         )}
@@ -1705,14 +1770,14 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
               onChange={e => onEditChange(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') onSaveEdit(task.id); if (e.key === 'Escape') onCancelEdit() }}
               onBlur={() => onSaveEdit(task.id)}
-              className="w-full text-[#3D4A3E] outline-none bg-transparent border-b pb-px"
+              className="w-full text-[var(--text-1)] outline-none bg-transparent border-b pb-px"
               style={{ borderColor: cat.color, fontSize: 16 }}
             />
           ) : (
             <>
               <span
                 onDoubleClick={() => !overlay && onStartEdit(task.id, task.text)}
-                className="text-[#3D4A3E] select-none leading-snug cursor-default"
+                className="text-[var(--text-1)] select-none leading-snug cursor-default"
                 style={{ fontSize: 14 }}
               >{task.text}</span>
               {subtasks.length > 0 && !overlay && (
@@ -1740,7 +1805,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 </button>
                 <button
                   onClick={() => setPendingComplete(false)}
-                  className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-[#9BAA9C] bg-[#F0F4EF] transition-all active:opacity-80"
+                  className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-[var(--text-3)] bg-[var(--bg-subtle)] transition-all active:opacity-80"
                   style={{ touchAction: 'manipulation' }}
                 >
                   Undo
@@ -1752,7 +1817,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 {!overlay && (
                   <button
                     onClick={openActionSheet}
-                    className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-[#C0D0BF] transition-colors"
+                    className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-[var(--icon-dim)] transition-colors"
                     style={{ touchAction: 'manipulation' }}
                   >
                     <MoreHorizontal size={16} />
@@ -1761,15 +1826,15 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
                 {/* ── Desktop: all 4 with hover ── */}
                 <div className={`hidden md:flex items-center gap-0.5 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                  <button title={task.starred ? 'Unstar' : 'Star'} onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
+                  <button title={task.starred ? 'Unstar' : 'Star'} onClick={() => onToggleStar(task.id)} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[var(--icon-dim)] hover:text-[#C4A93A]'}`}>
                     <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}><Star size={14} fill={task.starred ? 'currentColor' : 'none'} /></span>
                   </button>
                   {!overlay && (
-                    <button title="Add subtask" onClick={() => { if ((subtasksOpen || subtasksClosing) && !newSubtaskText.trim()) { closeSubtasks() } else { setSubtasksOpen(true); setAddingSubtask(true) } }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] transition-all">
+                    <button title="Add subtask" onClick={() => { if ((subtasksOpen || subtasksClosing) && !newSubtaskText.trim()) { closeSubtasks() } else { setSubtasksOpen(true); setAddingSubtask(true) } }} className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--icon-dim)] hover:text-[#7C9A7E] transition-all">
                       <ListPlus size={14} />
                     </button>
                   )}
-                  <button title="Edit (double-click)" onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
+                  <button title="Edit (double-click)" onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--icon-dim)] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
                     <Pencil size={14} />
                   </button>
                   <button title="Delete" onClick={() => setConfirmDelete(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
@@ -1791,7 +1856,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
         <div className="md:hidden fixed inset-0 z-50" onClick={sheetView === 'menu' ? closeActionSheet : undefined}>
           <div className="absolute inset-0 bg-black/25 transition-opacity duration-200" style={{ opacity: actionSheetClosing ? 0 : 1 }} />
           <div
-            className={`absolute inset-x-0 bg-white rounded-t-2xl shadow-xl overflow-y-auto ${actionSheetClosing ? 'sheet-down' : 'sheet-up'}`}
+            className={`absolute inset-x-0 bg-[var(--bg-surface)] rounded-t-2xl shadow-xl overflow-y-auto ${actionSheetClosing ? 'sheet-down' : 'sheet-up'}`}
             style={{
               bottom: sheetKbOffset,
               maxHeight: `calc(100vh - ${sheetKbOffset + 24}px)`,
@@ -1808,28 +1873,28 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
             {/* ── Menu view ── */}
             {sheetView === 'menu' && <>
-              <div className="px-5 pb-3 border-b border-[#F0F4EF]">
-                <p className="text-[13px] text-[#9BAA9C] truncate">{task.text}</p>
+              <div className="px-5 pb-3 border-b border-[var(--border-sub)]">
+                <p className="text-[13px] text-[var(--text-3)] truncate">{task.text}</p>
               </div>
               <div className="py-1">
-                <button onClick={() => { onToggleStar(task.id); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <button onClick={() => { onToggleStar(task.id); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[var(--bg-hover)] transition-colors" style={{ touchAction: 'manipulation' }}>
                   <Star size={18} fill={task.starred ? 'currentColor' : 'none'} style={{ color: task.starred ? '#C4A93A' : '#7C9A7E' }} />
-                  <span className="text-[15px] text-[#3D4A3E]">{task.starred ? 'Unstar' : 'Star'}</span>
+                  <span className="text-[15px] text-[var(--text-1)]">{task.starred ? 'Unstar' : 'Star'}</span>
                 </button>
-                <button onClick={() => { setSheetEditText(task.text); navigateSheet('edit') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <button onClick={() => { setSheetEditText(task.text); navigateSheet('edit') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[var(--bg-hover)] transition-colors" style={{ touchAction: 'manipulation' }}>
                   <Pencil size={18} style={{ color: '#7C9A7E' }} />
-                  <span className="text-[15px] text-[#3D4A3E]">Edit Task</span>
+                  <span className="text-[15px] text-[var(--text-1)]">Edit Task</span>
                 </button>
                 {!overlay && (
-                  <button onClick={() => { setSheetSubtaskText(''); navigateSheet('subtask') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <button onClick={() => { setSheetSubtaskText(''); navigateSheet('subtask') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[var(--bg-hover)] transition-colors" style={{ touchAction: 'manipulation' }}>
                     <ListPlus size={18} style={{ color: '#7C9A7E' }} />
-                    <span className="text-[15px] text-[#3D4A3E]">Add Subtask</span>
+                    <span className="text-[15px] text-[var(--text-1)]">Add Subtask</span>
                   </button>
                 )}
                 {!overlay && subtasks.length > 0 && (
-                  <button onClick={() => navigateSheet('subtasks')} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <button onClick={() => navigateSheet('subtasks')} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[var(--bg-hover)] transition-colors" style={{ touchAction: 'manipulation' }}>
                     <ListChecks size={18} style={{ color: '#7C9A7E' }} />
-                    <span className="text-[15px] text-[#3D4A3E]">View Subtasks ({subtasks.length})</span>
+                    <span className="text-[15px] text-[var(--text-1)]">View Subtasks ({subtasks.length})</span>
                   </button>
                 )}
                 <button onClick={() => { setConfirmDelete(true); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-rose-50 transition-colors" style={{ touchAction: 'manipulation' }}>
@@ -1838,7 +1903,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 </button>
               </div>
               <div className="px-4 pt-1" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
-                <button onClick={closeActionSheet} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <button onClick={closeActionSheet} className="w-full py-3.5 rounded-xl bg-[var(--bg-subtle)] text-[15px] font-medium text-[var(--text-2)] active:bg-[var(--bg-pressed)] transition-colors" style={{ touchAction: 'manipulation' }}>
                   Cancel
                 </button>
               </div>
@@ -1846,11 +1911,11 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
             {/* ── Edit view ── */}
             {sheetView === 'edit' && <>
-              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
-                <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[var(--border-sub)]">
+                <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-3)] active:bg-[var(--bg-subtle)] transition-colors" style={{ touchAction: 'manipulation' }}>
                   <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
                 </button>
-                <span className="text-[14px] font-semibold text-[#3D4A3E]">Edit Task</span>
+                <span className="text-[14px] font-semibold text-[var(--text-1)]">Edit Task</span>
               </div>
               <div className="px-4 py-3">
                 <textarea
@@ -1859,7 +1924,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   onChange={e => setSheetEditText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Escape') backToMenu() }}
                   rows={2}
-                  className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] outline-none resize-none shadow-sm"
+                  className="w-full px-4 py-3 rounded-xl border text-[var(--text-1)] outline-none resize-none shadow-sm"
                   style={{ borderColor: cat.color + 'BB', fontSize: 16 }}
                 />
               </div>
@@ -1871,7 +1936,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 >
                   Save
                 </button>
-                <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[var(--bg-subtle)] text-[15px] font-medium text-[var(--text-2)] active:bg-[var(--bg-pressed)] transition-colors" style={{ touchAction: 'manipulation' }}>
                   Cancel
                 </button>
               </div>
@@ -1879,11 +1944,11 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
             {/* ── Add Subtask view ── */}
             {sheetView === 'subtask' && <>
-              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
-                <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[var(--border-sub)]">
+                <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-3)] active:bg-[var(--bg-subtle)] transition-colors" style={{ touchAction: 'manipulation' }}>
                   <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
                 </button>
-                <span className="text-[14px] font-semibold text-[#3D4A3E]">Add Subtask</span>
+                <span className="text-[14px] font-semibold text-[var(--text-1)]">Add Subtask</span>
               </div>
               <div className="px-4 py-3">
                 <input
@@ -1895,7 +1960,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                     if (e.key === 'Escape') backToMenu()
                   }}
                   placeholder="Subtask name…"
-                  className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] placeholder-[#BFC9C0] outline-none shadow-sm"
+                  className="w-full px-4 py-3 rounded-xl border text-[var(--text-1)] placeholder-[var(--text-5)] outline-none shadow-sm"
                   style={{ borderColor: cat.color + 'BB', fontSize: 16 }}
                 />
               </div>
@@ -1907,7 +1972,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 >
                   Add
                 </button>
-                <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[var(--bg-subtle)] text-[15px] font-medium text-[var(--text-2)] active:bg-[var(--bg-pressed)] transition-colors" style={{ touchAction: 'manipulation' }}>
                   Cancel
                 </button>
               </div>
@@ -1915,25 +1980,25 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
 
             {/* ── Manage Subtasks view ── */}
             {sheetView === 'subtasks' && <>
-              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
-                <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[var(--border-sub)]">
+                <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-3)] active:bg-[var(--bg-subtle)] transition-colors" style={{ touchAction: 'manipulation' }}>
                   <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
                 </button>
-                <span className="text-[14px] font-semibold text-[#3D4A3E]">Subtasks</span>
+                <span className="text-[14px] font-semibold text-[var(--text-1)]">Subtasks</span>
               </div>
               <div className="py-1">
                 {subtasks.map(s => (
                   <div key={s.id} className="flex items-center gap-3 px-5 py-3">
-                    <div className="w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center" style={{ borderColor: s.done ? cat.color : '#C0D0BF', backgroundColor: s.done ? cat.color : 'transparent' }}>
+                    <div className="w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center" style={{ borderColor: s.done ? cat.color : 'var(--icon-dim)', backgroundColor: s.done ? cat.color : 'transparent' }}>
                       {s.done && <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                     </div>
-                    <span className={`flex-1 text-[14px] leading-snug ${s.done ? 'line-through text-[#9BAA9C]' : 'text-[#3D4A3E]'}`}>{s.text}</span>
+                    <span className={`flex-1 text-[14px] leading-snug ${s.done ? 'line-through text-[var(--text-3)]' : 'text-[var(--text-1)]'}`}>{s.text}</span>
                     <button
                       onClick={() => { setSheetEditSubId(s.id); setSheetEditSubText(s.text); navigateSheet('edit-subtask') }}
-                      className="w-9 h-9 flex items-center justify-center rounded-lg active:bg-[#F0F4EF] transition-colors"
+                      className="w-9 h-9 flex items-center justify-center rounded-lg active:bg-[var(--bg-subtle)] transition-colors"
                       style={{ touchAction: 'manipulation' }}
                     >
-                      <Pencil size={14} className="text-[#9BAA9C]" />
+                      <Pencil size={14} className="text-[var(--text-3)]" />
                     </button>
                     <button
                       onClick={() => setPendingDeleteSubId(s.id)}
@@ -1950,26 +2015,26 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   const sub = subtasks.find(s => s.id === pendingDeleteSubId)
                   return (
                     <div className="view-enter">
-                      <p className="text-[13px] text-[#9BAA9C] text-center mb-2.5 px-1 truncate">Remove "{sub?.text}"?</p>
+                      <p className="text-[13px] text-[var(--text-3)] text-center mb-2.5 px-1 truncate">Remove "{sub?.text}"?</p>
                       <div className="flex gap-2">
-                        <button onClick={() => setPendingDeleteSubId(null)} className="flex-1 py-3 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>Cancel</button>
+                        <button onClick={() => setPendingDeleteSubId(null)} className="flex-1 py-3 rounded-xl bg-[var(--bg-subtle)] text-[15px] font-medium text-[var(--text-2)] active:bg-[var(--bg-pressed)] transition-colors" style={{ touchAction: 'manipulation' }}>Cancel</button>
                         <button onClick={() => { onRemoveSubtask(task.id, pendingDeleteSubId); setPendingDeleteSubId(null); if (subtasks.length === 1) backToMenu() }} className="flex-1 py-3 rounded-xl bg-rose-50 text-[15px] font-semibold text-rose-500 active:bg-rose-100 transition-colors" style={{ touchAction: 'manipulation' }}>Remove</button>
                       </div>
                     </div>
                   )
                 })() : (
-                  <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>Done</button>
+                  <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[var(--bg-subtle)] text-[15px] font-medium text-[var(--text-2)] active:bg-[var(--bg-pressed)] transition-colors" style={{ touchAction: 'manipulation' }}>Done</button>
                 )}
               </div>
             </>}
 
             {/* ── Edit Subtask view ── */}
             {sheetView === 'edit-subtask' && <>
-              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
-                <button onClick={backToSubtasks} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+              <div className="flex items-center gap-3 px-4 pb-3 border-b border-[var(--border-sub)]">
+                <button onClick={backToSubtasks} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-3)] active:bg-[var(--bg-subtle)] transition-colors" style={{ touchAction: 'manipulation' }}>
                   <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
                 </button>
-                <span className="text-[14px] font-semibold text-[#3D4A3E]">Edit Subtask</span>
+                <span className="text-[14px] font-semibold text-[var(--text-1)]">Edit Subtask</span>
               </div>
               <div className="px-4 pt-4">
                 <textarea
@@ -1978,14 +2043,14 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                   onChange={e => setSheetEditSubText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); if (sheetEditSubText.trim()) { onEditSubtask(task.id, sheetEditSubId, sheetEditSubText); backToSubtasks() } } }}
                   rows={3}
-                  className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] outline-none resize-none shadow-sm transition-colors"
+                  className="w-full px-4 py-3 rounded-xl border text-[var(--text-1)] outline-none resize-none shadow-sm transition-colors"
                   style={{ borderColor: cat.color + '88', fontSize: 16 }}
                 />
               </div>
               <div className="px-4 pt-3 flex gap-2" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
                 <button
                   onClick={backToSubtasks}
-                  className="flex-1 py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors"
+                  className="flex-1 py-3.5 rounded-xl bg-[var(--bg-subtle)] text-[15px] font-medium text-[var(--text-2)] active:bg-[var(--bg-pressed)] transition-colors"
                   style={{ touchAction: 'manipulation' }}
                 >Cancel</button>
                 <button
@@ -2014,7 +2079,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
               style={{ backgroundColor: cat.light, borderColor: cat.color + '40', animationDelay: removingSubIds.has(s.id) ? '0ms' : `${Math.min(i, 8) * 35}ms` }}
             >
               <button onClick={() => onToggleSubtask(task.id, s.id)} className="shrink-0 -m-1.5 p-1.5 md:-m-1 md:p-1 active:scale-90 transition-transform" style={{ touchAction: 'manipulation' }}>
-                <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all" style={{ borderColor: s.done ? cat.color : '#C0D0BF', backgroundColor: s.done ? cat.color : 'transparent' }}>
+                <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all" style={{ borderColor: s.done ? cat.color : 'var(--icon-dim)', backgroundColor: s.done ? cat.color : 'transparent' }}>
                   {s.done && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                 </div>
               </button>
@@ -2028,13 +2093,13 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                     if (e.key === 'Escape') setEditingSubId(null)
                   }}
                   onBlur={() => { onEditSubtask(task.id, s.id, editSubText); setEditingSubId(null) }}
-                  className="flex-1 text-[#3D4A3E] outline-none bg-transparent border-b pb-px"
+                  className="flex-1 text-[var(--text-1)] outline-none bg-transparent border-b pb-px"
                   style={{ borderColor: cat.color, fontSize: 16 }}
                 />
               ) : (
                 <span
                   onDoubleClick={() => { setEditingSubId(s.id); setEditSubText(s.text) }}
-                  className={`flex-1 leading-snug cursor-text ${s.done ? 'line-through text-[#9BAA9C]' : 'text-[#3D4A3E]'}`}
+                  className={`flex-1 leading-snug cursor-text ${s.done ? 'line-through text-[var(--text-3)]' : 'text-[var(--text-1)]'}`}
                   style={{ fontSize: 14, touchAction: 'manipulation' }}
                 >{s.text}</span>
               )}
@@ -2055,7 +2120,7 @@ function TaskRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, on
                 onKeyDown={e => { if (e.key === 'Escape') { setAddingSubtask(false); setNewSubtaskText('') } }}
                 onBlur={() => { if (!newSubtaskText.trim()) { if (!task.subtasks?.length) closeSubtasks(); else setAddingSubtask(false) } }}
                 placeholder="Add subtask…"
-                className="flex-1 text-[#3D4A3E] placeholder-[#C0CCC0] outline-none bg-transparent"
+                className="flex-1 text-[var(--text-1)] placeholder-[var(--text-6)] outline-none bg-transparent"
                 style={{ fontSize: 16 }}
               />
               {newSubtaskText.trim() && (
@@ -2079,7 +2144,7 @@ function ArchiveRow({ task, cat, onRestore, onDelete, clearing = false, clearing
   const subtasks = task.subtasks ?? []
   return (
     <div
-      className={`px-3.5 py-3 rounded-xl bg-white border border-[#EAEAE8] shadow-sm ${clearing ? 'task-deleting' : ''}`}
+      className={`px-3.5 py-3 rounded-xl bg-[var(--bg-surface)] border border-[#EAEAE8] shadow-sm ${clearing ? 'task-deleting' : ''}`}
       style={clearing ? { animationDelay: `${clearingIndex * 35}ms` } : undefined}
     >
       <div className="flex items-center gap-2.5">
@@ -2088,8 +2153,8 @@ function ArchiveRow({ task, cat, onRestore, onDelete, clearing = false, clearing
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <span className="flex-1 leading-snug line-through text-[#9BAA9C] select-none" style={{ fontSize: 14 }}>{task.text}</span>
-        <button onClick={() => onRestore(task.id)} className="text-[12px] text-[#9BAA9C] hover:text-[#5A7A5C] px-3 h-9 rounded-lg hover:bg-[#EEF3EC] transition-all font-medium shrink-0">
+        <span className="flex-1 leading-snug line-through text-[var(--text-3)] select-none" style={{ fontSize: 14 }}>{task.text}</span>
+        <button onClick={() => onRestore(task.id)} className="text-[12px] text-[var(--text-3)] hover:text-[#5A7A5C] px-3 h-9 rounded-lg hover:bg-[#EEF3EC] transition-all font-medium shrink-0">
           Restore
         </button>
         <button onClick={() => onDelete(task.id)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all shrink-0">
@@ -2105,7 +2170,7 @@ function ArchiveRow({ task, cat, onRestore, onDelete, clearing = false, clearing
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <span className="text-[12px] line-through text-[#B5C4B6] leading-snug">{s.text}</span>
+              <span className="text-[12px] line-through text-[var(--text-4)] leading-snug">{s.text}</span>
             </div>
           ))}
         </div>
@@ -2164,9 +2229,9 @@ function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, 
 
   return (
     <>
-      <div className={`group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white border border-[#E0EAE0] shadow-sm ${unstarring ? 'task-unstarring' : ''}`}>
+      <div className={`group flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border)] shadow-sm ${unstarring ? 'task-unstarring' : ''}`}>
         <button onClick={() => onArchive(task.id)} className="shrink-0 -m-1 p-1 rounded-full active:scale-90 transition-transform" style={{ touchAction: 'manipulation' }}>
-          <div className="w-[20px] h-[20px] rounded-full border-2" style={{ borderColor: '#C0D0BF' }} />
+          <div className="w-[20px] h-[20px] rounded-full border-2" style={{ borderColor: 'var(--icon-dim)' }} />
         </button>
         {isEditing ? (
           <input
@@ -2174,11 +2239,11 @@ function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, 
             onChange={e => onEditChange(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') onSaveEdit(task.id); if (e.key === 'Escape') onCancelEdit() }}
             onBlur={() => onSaveEdit(task.id)}
-            className="flex-1 text-[#3D4A3E] outline-none bg-transparent border-b pb-px"
+            className="flex-1 text-[var(--text-1)] outline-none bg-transparent border-b pb-px"
             style={{ borderColor: cat.color, fontSize: 16 }}
           />
         ) : (
-          <span className="flex-1 text-[#3D4A3E] select-none leading-snug" style={{ fontSize: 14 }}>{task.text}</span>
+          <span className="flex-1 text-[var(--text-1)] select-none leading-snug" style={{ fontSize: 14 }}>{task.text}</span>
         )}
         <div className="flex items-center gap-1 shrink-0">
           <span className="text-[11px] font-semibold px-2 py-1 rounded-full flex items-center gap-1" style={{ backgroundColor: cat.light, color: cat.dark }}>
@@ -2188,17 +2253,17 @@ function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, 
           {!isEditing && (
             <>
               {/* Mobile: 3-dot trigger */}
-              <button onClick={openActionSheet} className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-[#C0D0BF] transition-colors" style={{ touchAction: 'manipulation' }}>
+              <button onClick={openActionSheet} className="md:hidden w-11 h-11 flex items-center justify-center rounded-lg text-[var(--icon-dim)] transition-colors" style={{ touchAction: 'manipulation' }}>
                 <MoreHorizontal size={16} />
               </button>
               {/* Desktop: full controls */}
               <div className={`hidden md:flex items-center gap-0.5 transition-opacity ${task.starred ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                <button onClick={toggleStarWithAnim} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[#C0D0BF] hover:text-[#C4A93A]'}`}>
+                <button onClick={toggleStarWithAnim} className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${task.starred ? 'text-[#C4A93A] hover:text-[#A88020]' : 'text-[var(--icon-dim)] hover:text-[#C4A93A]'}`}>
                   <span key={String(task.starred)} className={task.starred ? 'star-pop' : ''}>
                     <Star size={14} fill={task.starred ? 'currentColor' : 'none'} />
                   </span>
                 </button>
-                <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C0D0BF] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
+                <button onClick={() => onStartEdit(task.id, task.text)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--icon-dim)] hover:text-[#7C9A7E] active:bg-[#EEF3EC] transition-all">
                   <Pencil size={14} />
                 </button>
                 <button onClick={() => setConfirmDelete(true)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[#C8BEB4] hover:text-rose-400 active:bg-rose-50 transition-all">
@@ -2216,7 +2281,7 @@ function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, 
         <div className="md:hidden fixed inset-0 z-50" onClick={sheetView === 'menu' ? closeActionSheet : undefined}>
           <div className="absolute inset-0 bg-black/25 transition-opacity duration-200" style={{ opacity: actionSheetClosing ? 0 : 1 }} />
           <div
-            className={`absolute inset-x-0 bg-white rounded-t-2xl shadow-xl overflow-y-auto ${actionSheetClosing ? 'sheet-down' : 'sheet-up'}`}
+            className={`absolute inset-x-0 bg-[var(--bg-surface)] rounded-t-2xl shadow-xl overflow-y-auto ${actionSheetClosing ? 'sheet-down' : 'sheet-up'}`}
             style={{
               bottom: sheetKbOffset,
               maxHeight: `calc(100vh - ${sheetKbOffset + 24}px)`,
@@ -2230,17 +2295,17 @@ function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, 
 
               {/* Menu */}
               {sheetView === 'menu' && <>
-                <div className="px-5 pb-3 border-b border-[#F0F4EF]">
-                  <p className="text-[13px] text-[#9BAA9C] truncate">{task.text}</p>
+                <div className="px-5 pb-3 border-b border-[var(--border-sub)]">
+                  <p className="text-[13px] text-[var(--text-3)] truncate">{task.text}</p>
                 </div>
                 <div className="py-1">
-                  <button onClick={() => { toggleStarWithAnim(); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <button onClick={() => { toggleStarWithAnim(); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[var(--bg-hover)] transition-colors" style={{ touchAction: 'manipulation' }}>
                     <Star size={18} fill={task.starred ? 'currentColor' : 'none'} style={{ color: task.starred ? '#C4A93A' : '#7C9A7E' }} />
-                    <span className="text-[15px] text-[#3D4A3E]">{task.starred ? 'Unstar' : 'Star'}</span>
+                    <span className="text-[15px] text-[var(--text-1)]">{task.starred ? 'Unstar' : 'Star'}</span>
                   </button>
-                  <button onClick={() => { setSheetEditText(task.text); navigateSheet('edit') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[#F5F8F5] transition-colors" style={{ touchAction: 'manipulation' }}>
+                  <button onClick={() => { setSheetEditText(task.text); navigateSheet('edit') }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-[var(--bg-hover)] transition-colors" style={{ touchAction: 'manipulation' }}>
                     <Pencil size={18} style={{ color: '#7C9A7E' }} />
-                    <span className="text-[15px] text-[#3D4A3E]">Edit</span>
+                    <span className="text-[15px] text-[var(--text-1)]">Edit</span>
                   </button>
                   <button onClick={() => { setConfirmDelete(true); closeActionSheet() }} className="flex items-center gap-4 w-full px-5 py-3.5 active:bg-rose-50 transition-colors" style={{ touchAction: 'manipulation' }}>
                     <Trash2 size={18} className="text-rose-400" />
@@ -2248,17 +2313,17 @@ function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, 
                   </button>
                 </div>
                 <div className="px-4 pt-1" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
-                  <button onClick={closeActionSheet} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>Cancel</button>
+                  <button onClick={closeActionSheet} className="w-full py-3.5 rounded-xl bg-[var(--bg-subtle)] text-[15px] font-medium text-[var(--text-2)] active:bg-[var(--bg-pressed)] transition-colors" style={{ touchAction: 'manipulation' }}>Cancel</button>
                 </div>
               </>}
 
               {/* Edit */}
               {sheetView === 'edit' && <>
-                <div className="flex items-center gap-3 px-4 pb-3 border-b border-[#F0F4EF]">
-                  <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#9BAA9C] active:bg-[#F0F4EF] transition-colors" style={{ touchAction: 'manipulation' }}>
+                <div className="flex items-center gap-3 px-4 pb-3 border-b border-[var(--border-sub)]">
+                  <button onClick={backToMenu} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-3)] active:bg-[var(--bg-subtle)] transition-colors" style={{ touchAction: 'manipulation' }}>
                     <ChevronDown size={18} style={{ transform: 'rotate(90deg)' }} />
                   </button>
-                  <span className="text-[14px] font-semibold text-[#3D4A3E]">Edit Task</span>
+                  <span className="text-[14px] font-semibold text-[var(--text-1)]">Edit Task</span>
                 </div>
                 <div className="px-4 py-3">
                   <textarea
@@ -2267,7 +2332,7 @@ function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, 
                     onChange={e => setSheetEditText(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Escape') backToMenu() }}
                     rows={2}
-                    className="w-full px-4 py-3 rounded-xl border text-[#3D4A3E] outline-none resize-none shadow-sm"
+                    className="w-full px-4 py-3 rounded-xl border text-[var(--text-1)] outline-none resize-none shadow-sm"
                     style={{ borderColor: cat.color + 'BB', fontSize: 16 }}
                   />
                 </div>
@@ -2277,7 +2342,7 @@ function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, 
                     className="w-full py-3.5 rounded-xl text-[15px] font-semibold text-white transition-colors active:opacity-80"
                     style={{ backgroundColor: cat.color, touchAction: 'manipulation' }}
                   >Save</button>
-                  <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[#F0F4EF] text-[15px] font-medium text-[#637265] active:bg-[#E4EAE3] transition-colors" style={{ touchAction: 'manipulation' }}>Cancel</button>
+                  <button onClick={backToMenu} className="w-full py-3.5 rounded-xl bg-[var(--bg-subtle)] text-[15px] font-medium text-[var(--text-2)] active:bg-[var(--bg-pressed)] transition-colors" style={{ touchAction: 'manipulation' }}>Cancel</button>
                 </div>
               </>}
 
@@ -2295,7 +2360,7 @@ function SearchRow({ task, cat, isEditing, editText, onEditChange, onStartEdit, 
 function NewCatForm({ name, setName, color, setColor, icon, setIcon, onSubmit, onClose, mobile }) {
   const PreviewIcon = ICON_MAP[icon]
   return (
-    <form onSubmit={onSubmit} className={mobile ? '' : 'mx-1 mt-1 p-3 bg-white rounded-xl border border-[#D5E2D4] shadow-sm'}>
+    <form onSubmit={onSubmit} className={mobile ? '' : 'mx-1 mt-1 p-3 bg-[var(--bg-surface)] rounded-xl border border-[var(--border-nav)] shadow-sm'}>
       {/* Name + live icon preview */}
       <div className="flex items-center gap-2.5 mb-3">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors" style={{ backgroundColor: color.light }}>
@@ -2306,15 +2371,15 @@ function NewCatForm({ name, setName, color, setColor, icon, setIcon, onSubmit, o
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Escape' && onClose()}
-          placeholder="List name…"
+          placeholder="Category name…"
           enterKeyHint="enter"
-          className={`flex-1 text-[#3D4A3E] placeholder-[#BFC9C0] outline-none border-b border-[#E0EAE0] pb-1.5 ${mobile ? 'text-base' : 'text-[13px]'}`}
+          className={`flex-1 text-[var(--text-1)] placeholder-[var(--text-5)] outline-none border-b border-[var(--border)] pb-1.5 ${mobile ? 'text-base' : 'text-[13px]'}`}
           style={{ fontSize: 16 }}
         />
       </div>
 
       {/* Color swatches */}
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9BAA9C] mb-1.5">Color</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-3)] mb-1.5">Color</p>
       <div className={`flex gap-2 flex-wrap ${mobile ? 'mb-4' : 'mb-3'}`}>
         {PALETTE.map(p => (
           <button
@@ -2326,7 +2391,7 @@ function NewCatForm({ name, setName, color, setColor, icon, setIcon, onSubmit, o
       </div>
 
       {/* Icon picker */}
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9BAA9C] mb-1.5">Icon</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-3)] mb-1.5">Icon</p>
       <div className={`grid grid-cols-8 gap-1 ${mobile ? 'mb-5' : 'mb-3'}`}>
         {CUSTOM_ICONS.map(name => {
           const Ic = ICON_MAP[name]
@@ -2338,7 +2403,7 @@ function NewCatForm({ name, setName, color, setColor, icon, setIcon, onSubmit, o
               className={`rounded-lg flex items-center justify-center transition-all active:scale-90 ${mobile ? 'w-9 h-9' : 'w-7 h-7'}`}
               style={{
                 backgroundColor: selected ? color.color + '22' : 'transparent',
-                color: selected ? color.color : '#9BAA9C',
+                color: selected ? color.color : 'var(--text-3)',
                 outline: selected ? `1.5px solid ${color.color}55` : 'none',
               }}
             >
@@ -2354,11 +2419,11 @@ function NewCatForm({ name, setName, color, setColor, icon, setIcon, onSubmit, o
           className={`flex-1 rounded-xl text-white font-semibold hover:opacity-80 active:scale-95 transition-all ${mobile ? 'py-3 text-[15px]' : 'py-1.5 text-[11px]'}`}
           style={{ backgroundColor: color.color }}
         >
-          Add List
+          Add Category
         </button>
         <button
           type="button" onClick={onClose}
-          className={`flex-1 rounded-xl font-medium text-[#9BAA9C] bg-[#F0F2EF] hover:bg-[#E5E8E4] transition-colors ${mobile ? 'py-3 text-[15px]' : 'py-1.5 text-[11px]'}`}
+          className={`flex-1 rounded-xl font-medium text-[var(--text-3)] bg-[#F0F2EF] hover:bg-[#E5E8E4] transition-colors ${mobile ? 'py-3 text-[15px]' : 'py-1.5 text-[11px]'}`}
         >
           Cancel
         </button>
@@ -2376,7 +2441,7 @@ function SortableCatCard({ id, className = '', children }) {
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : 'auto' }}
-      className={`bg-white rounded-2xl border border-[#E0EAE0] shadow-sm overflow-hidden ${isDragging ? 'opacity-50 shadow-lg' : ''} ${className}`}
+      className={`bg-[var(--bg-surface)] rounded-2xl border border-[var(--border)] shadow-sm overflow-hidden ${isDragging ? 'opacity-50 shadow-lg' : ''} ${className}`}
     >
       {children(listeners, attributes)}
     </div>
@@ -2385,7 +2450,28 @@ function SortableCatCard({ id, className = '', children }) {
 
 // ── Settings Page ──────────────────────────────────────────────────────────
 
-function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, user, onSignOut, clearingIds, clearingOrderMap }) {
+function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, user, onSignOut, clearingIds, clearingOrderMap, darkMode, onToggleDark }) {
+  const [changePwOpen, setChangePwOpen] = useState(false)
+  const [pwCurrent, setPwCurrent]       = useState('')
+  const [pwNew, setPwNew]               = useState('')
+  const [pwConfirm, setPwConfirm]       = useState('')
+  const [pwError, setPwError]           = useState('')
+  const [pwSuccess, setPwSuccess]       = useState(false)
+  const [pwLoading, setPwLoading]       = useState(false)
+
+  const handleChangePw = async e => {
+    e.preventDefault()
+    setPwError('')
+    if (pwNew.length < 6) { setPwError('Password must be at least 6 characters'); return }
+    if (pwNew !== pwConfirm) { setPwError('Passwords do not match'); return }
+    setPwLoading(true)
+    const { error } = await supabase.auth.updateUser({ password: pwNew })
+    setPwLoading(false)
+    if (error) { setPwError(error.message); return }
+    setPwSuccess(true)
+    setPwNew(''); setPwConfirm('')
+    setTimeout(() => { setPwSuccess(false); setChangePwOpen(false) }, 2000)
+  }
   const [editingId, setEditingId]     = useState(null)
   const [editName, setEditName]       = useState('')
   const [editColor, setEditColor]     = useState(PALETTE[0])
@@ -2445,11 +2531,11 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
         <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#EEF3EC]">
           <Settings size={20} style={{ color: '#7C9A7E' }} strokeWidth={1.75} />
         </div>
-        <h2 className="text-xl font-semibold text-[#3D4A3E]">Settings</h2>
+        <h2 className="text-xl font-semibold text-[var(--text-1)]">Settings</h2>
       </div>
 
-      {/* Lists section */}
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#9BAA9C] mb-3">Lists</p>
+      {/* Categories section */}
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-3)] mb-3">Categories</p>
       <DndContext sensors={catSensors} collisionDetection={closestCenter} onDragEnd={handleCatDragEnd}>
         <SortableContext items={categories.map(c => c.id)} strategy={verticalListSortingStrategy}>
       <div className="space-y-2">
@@ -2480,17 +2566,14 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
                     <CatIcon cat={previewCat} size={18} style={{ color: previewCat.color }} strokeWidth={1.75} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-[#3D4A3E] truncate">{cat.name}</p>
-                    <p className="text-[11px] text-[#9BAA9C]">
-                      {activeCount} active{archivedCount > 0 ? ` · ${archivedCount} archived` : ''}
-                    </p>
+                    <p className="text-[14px] font-medium text-[var(--text-1)] truncate">{cat.name}</p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => isEditing ? setEditingId(null) : startEdit(cat)}
                       className="h-8 px-3 rounded-lg text-[12px] font-medium transition-all"
                       style={isEditing
-                        ? { color: '#9BAA9C', backgroundColor: '#F0F2EF' }
+                        ? { color: 'var(--text-3)', backgroundColor: 'var(--bg-subtle)' }
                         : { color: '#7C9A7E', backgroundColor: '#EEF3EC' }
                       }
                     >
@@ -2508,19 +2591,19 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
 
               {/* Inline edit panel */}
               {isEditing && !isDeleting && (
-                <div className="px-4 pb-4 border-t border-[#F0F4EF] pt-3 space-y-3">
+                <div className="px-4 pb-4 border-t border-[var(--border-sub)] pt-3 space-y-3">
                   <input
                     autoFocus
                     value={editName}
                     onChange={e => setEditName(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') setEditingId(null) }}
-                    placeholder="List name"
-                    className="w-full px-3 py-2.5 rounded-xl border text-[14px] text-[#3D4A3E] outline-none transition-all"
+                    placeholder="Category name"
+                    className="w-full px-3 py-2.5 rounded-xl border text-[14px] text-[var(--text-1)] outline-none transition-all"
                     style={{ borderColor: editColor.color + '88', fontSize: 16 }}
                   />
 
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9BAA9C] mb-2">Color</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-3)] mb-2">Color</p>
                     <div className="flex gap-2 flex-wrap">
                       {PALETTE.map(p => (
                         <button
@@ -2533,7 +2616,7 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
                   </div>
 
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9BAA9C] mb-2">Icon</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-3)] mb-2">Icon</p>
                     <div className="grid grid-cols-8 gap-1">
                       {CUSTOM_ICONS.map(name => {
                         const Ic  = ICON_MAP[name]
@@ -2545,7 +2628,7 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
                             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all active:scale-90"
                             style={{
                               backgroundColor: sel ? editColor.color + '22' : 'transparent',
-                              color: sel ? editColor.color : '#9BAA9C',
+                              color: sel ? editColor.color : 'var(--text-3)',
                               outline: sel ? `1.5px solid ${editColor.color}55` : 'none',
                             }}
                           >
@@ -2588,7 +2671,7 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
                     </button>
                     <button
                       onClick={() => setDeletingId(null)}
-                      className="flex-1 py-2 rounded-xl bg-white border border-[#E0EAE0] text-[#9BAA9C] text-[13px] font-medium hover:bg-[#F8F6F2] transition-colors"
+                      className="flex-1 py-2 rounded-xl bg-[var(--bg-surface)] border border-[var(--border)] text-[var(--text-3)] text-[13px] font-medium hover:bg-[var(--bg-base)] transition-colors"
                     >
                       Cancel
                     </button>
@@ -2603,11 +2686,11 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
         </SortableContext>
       </DndContext>
 
-        {/* Add new list */}
-        <div className="mt-2 bg-white rounded-2xl border border-dashed border-[#C8DAC7] shadow-sm overflow-hidden">
+        {/* Add new category */}
+        <div className="mt-2 bg-[var(--bg-surface)] rounded-2xl border border-dashed border-[#C8DAC7] shadow-sm overflow-hidden">
             {showAdd ? (
               <div className="p-4">
-                <p className="text-[12px] font-semibold text-[#5A6B5C] mb-3">New List</p>
+                <p className="text-[12px] font-semibold text-[var(--text-med)] mb-3">New Category</p>
                 <NewCatForm
                   name={addName} setName={setAddName}
                   color={addColor} setColor={setAddColor}
@@ -2619,33 +2702,84 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
             ) : (
               <button
                 onClick={() => { setShowAdd(true); setEditingId(null); setDeletingId(null) }}
-                className="w-full flex items-center gap-2.5 px-4 py-3.5 text-[#9BAA9C] hover:text-[#7C9A7E] hover:bg-[#F4F8F4] transition-all"
+                className="w-full flex items-center gap-2.5 px-4 py-3.5 text-[var(--text-3)] hover:text-[#7C9A7E] hover:bg-[var(--bg-hover)] transition-all"
               >
                 <Plus size={16} />
-                <span className="text-[13px] font-medium">New List</span>
+                <span className="text-[13px] font-medium">New Category</span>
               </button>
             )}
           </div>
 
       {/* Account section */}
       <div className="mt-8 mb-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#9BAA9C] mb-3">Account</p>
-        <div className="bg-white rounded-2xl border border-[#E0EAE0] shadow-sm overflow-hidden">
-          <div className="flex items-center gap-3 px-4 py-3.5">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-3)] mb-3">Account</p>
+        <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border)] shadow-sm overflow-hidden">
+          {/* User row */}
+          <div className="flex items-center gap-3 px-4 py-3.5 border-b border-[var(--border-mod)]">
             <div className="w-9 h-9 rounded-xl bg-[#EEF3EC] flex items-center justify-center shrink-0">
               <span className="text-[15px] font-semibold text-[#7C9A7E]">{user?.email?.[0]?.toUpperCase()}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-medium text-[#3D4A3E] truncate">{user?.email}</p>
-              <p className="text-[11px] text-[#9BAA9C]">Signed in</p>
+              <p className="text-[14px] font-medium text-[var(--text-1)] truncate">{user?.email}</p>
+              <p className="text-[11px] text-[var(--text-3)]">Signed in</p>
             </div>
-            <button
-              onClick={onSignOut}
-              className="h-8 px-3 rounded-lg text-[12px] font-medium text-rose-400 hover:bg-rose-50 transition-all shrink-0"
-            >
+            <button onClick={onSignOut} className="h-8 px-3 rounded-lg text-[12px] font-medium text-rose-400 hover:bg-rose-50 transition-all shrink-0">
               Sign out
             </button>
           </div>
+
+          {/* Dark mode toggle */}
+          <button onClick={onToggleDark} className="flex items-center justify-between w-full px-4 py-3.5 border-b border-[var(--border-mod)] hover:bg-[var(--bg-hover)] transition-colors">
+            <div className="flex items-center gap-3">
+              <Moon size={16} style={{ color: '#7C9A7E' }} />
+              <span className="text-[14px] font-medium text-[var(--text-1)]">Dark Mode</span>
+            </div>
+            <div className={`w-10 h-6 rounded-full transition-colors relative ${darkMode ? 'bg-[#7C9A7E]' : 'bg-[var(--border)]'}`}>
+              <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--bg-surface)] shadow transition-transform ${darkMode ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </div>
+          </button>
+
+          {/* Change password */}
+          <button onClick={() => { setChangePwOpen(p => !p); setPwError(''); setPwSuccess(false) }} className="flex items-center justify-between w-full px-4 py-3.5 hover:bg-[var(--bg-hover)] transition-colors">
+            <div className="flex items-center gap-3">
+              <KeyRound size={16} style={{ color: '#7C9A7E' }} />
+              <span className="text-[14px] font-medium text-[var(--text-1)]">Change Password</span>
+            </div>
+            <ChevronDown size={16} className="text-[var(--text-3)]" style={{ transform: changePwOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
+
+          {changePwOpen && (
+            <form onSubmit={handleChangePw} className="px-4 pb-4 pt-1 border-t border-[var(--border-mod)]">
+              {pwSuccess ? (
+                <p className="text-[13px] text-[#7C9A7E] font-medium py-2">Password updated successfully!</p>
+              ) : (
+                <>
+                  <div className="space-y-2 mb-3">
+                    <input
+                      type="password" value={pwNew} onChange={e => setPwNew(e.target.value)}
+                      placeholder="New password" required minLength={6}
+                      className="w-full px-3 py-2.5 rounded-xl border text-[var(--text-1)] placeholder-[var(--text-5)] outline-none bg-[var(--bg-base)] transition-colors"
+                      style={{ borderColor: 'var(--border)', fontSize: 15 }}
+                      onFocus={e => (e.target.style.borderColor = '#7C9A7EBB')}
+                      onBlur={e  => (e.target.style.borderColor = 'var(--border)')}
+                    />
+                    <input
+                      type="password" value={pwConfirm} onChange={e => setPwConfirm(e.target.value)}
+                      placeholder="Confirm new password" required
+                      className="w-full px-3 py-2.5 rounded-xl border text-[var(--text-1)] placeholder-[var(--text-5)] outline-none bg-[var(--bg-base)] transition-colors"
+                      style={{ borderColor: 'var(--border)', fontSize: 15 }}
+                      onFocus={e => (e.target.style.borderColor = '#7C9A7EBB')}
+                      onBlur={e  => (e.target.style.borderColor = 'var(--border)')}
+                    />
+                  </div>
+                  {pwError && <p className="text-[12px] text-rose-500 mb-2">{pwError}</p>}
+                  <button type="submit" disabled={pwLoading} className="w-full py-2.5 rounded-xl text-white text-[14px] font-semibold transition-all disabled:opacity-60" style={{ backgroundColor: '#7C9A7E' }}>
+                    {pwLoading ? 'Updating…' : 'Update Password'}
+                  </button>
+                </>
+              )}
+            </form>
+          )}
         </div>
       </div>
     </div>

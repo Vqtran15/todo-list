@@ -5,6 +5,54 @@
 * { box-sizing: border-box; }
 body { margin: 0; }
 
+/* ── Theme tokens ──────────────────────────────────────────────────────── */
+:root {
+  --bg-base:     #F8F6F2;
+  --bg-nav:      #ECF0EA;
+  --bg-surface:  #ffffff;
+  --bg-subtle:   #F0F4EF;
+  --bg-hover:    #F5F8F5;
+  --bg-pressed:  #E4EAE3;
+  --bg-starred:  #FEFBF0;
+  --border:      #E0EAE0;
+  --border-nav:  #D5E2D4;
+  --border-sub:  #F0F4EF;
+  --border-mod:  #F0F0EE;
+  --border-hov:  #C8DCC8;
+  --border-inp:  #DBE8DA;
+  --text-1:      #3D4A3E;
+  --text-2:      #637265;
+  --text-3:      #9BAA9C;
+  --text-4:      #B5C4B6;
+  --text-5:      #BFC9C0;
+  --text-6:      #C0CCC0;
+  --icon-dim:    #C0D0BF;
+  --text-med:    #5A6B5C;
+}
+.dark {
+  --bg-base:     #141A14;
+  --bg-nav:      #1B231B;
+  --bg-surface:  #1E2A1E;
+  --bg-subtle:   #1E281E;
+  --bg-hover:    #1A261A;
+  --bg-pressed:  #243024;
+  --bg-starred:  #231F0E;
+  --border:      #283C28;
+  --border-nav:  #223022;
+  --border-sub:  #1E281E;
+  --border-mod:  #2A342A;
+  --border-hov:  #324632;
+  --border-inp:  #283C28;
+  --text-1:      #D4E8D4;
+  --text-2:      #8EA68F;
+  --text-3:      #596A5A;
+  --text-4:      #3E503F;
+  --text-5:      #3A4C3B;
+  --text-6:      #3C4E3D;
+  --icon-dim:    #354635;
+  --text-med:    #7A9A7C;
+}
+
 /* Hide scrollbar on bottom nav */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
