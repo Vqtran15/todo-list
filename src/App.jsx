@@ -26,7 +26,7 @@ import {
   // UI icons
   Plus, Search, Pencil, X, GripVertical, Settings, ChevronDown,
   Square, SquareCheck, ListPlus, ListChecks, Trash2, MoreHorizontal, CheckCircle2,
-  Moon, KeyRound,
+  KeyRound,
 } from 'lucide-react'
 
 // ── Icon registry ──────────────────────────────────────────────────────────
@@ -112,18 +112,28 @@ const STARRED_CAT = {
 }
 
 const PALETTE = [
-  { color: '#C47A7A', light: '#F5EDED', dark: '#8A4A4A' },
-  { color: '#7AB8B0', light: '#E9F4F3', dark: '#4A8A82' },
-  { color: '#B87A9A', light: '#F5EAF0', dark: '#8A4A72' },
-  { color: '#8A9E7C', light: '#EDF3E9', dark: '#52724A' },
-  { color: '#C4A57A', light: '#F5EFE3', dark: '#8A7242' },
-  { color: '#9BB87A', light: '#EFF5E9', dark: '#5A8A42' },
-  { color: '#7A8EB8', light: '#EAF0F6', dark: '#4A5E8A' },
-  { color: '#B8AA7A', light: '#F5F0E3', dark: '#8A7A42' },
-  { color: '#C48A60', light: '#F6EEE4', dark: '#8A5A38' },
-  { color: '#9A7AB8', light: '#F0ECF8', dark: '#624A8A' },
-  { color: '#5A9A7C', light: '#E6F4ED', dark: '#2A6A4C' },
-  { color: '#7A6AB8', light: '#EAEAF8', dark: '#3A3A8A' },
+  { color: '#C47A7A', light: '#F5EDED', dark: '#8A4A4A' }, // rose
+  { color: '#C47060', light: '#F5EAE7', dark: '#8A4032' }, // warm coral
+  { color: '#C48A60', light: '#F6EEE4', dark: '#8A5A38' }, // terracotta
+  { color: '#C4A57A', light: '#F5EFE3', dark: '#8A7242' }, // warm tan
+  { color: '#B8AA7A', light: '#F5F0E3', dark: '#8A7A42' }, // khaki
+  { color: '#C4B450', light: '#F8F4DC', dark: '#8A7A28' }, // warm gold
+  { color: '#A8BC60', light: '#F2F6E2', dark: '#6A8430' }, // chartreuse
+  { color: '#9BB87A', light: '#EFF5E9', dark: '#5A8A42' }, // yellow-green
+  { color: '#8A9E7C', light: '#EDF3E9', dark: '#52724A' }, // sage
+  { color: '#7AB860', light: '#EBF5E2', dark: '#4A8430' }, // fresh green
+  { color: '#6AAA78', light: '#E8F5EE', dark: '#387A48' }, // soft mint
+  { color: '#5A9A7C', light: '#E6F4ED', dark: '#2A6A4C' }, // forest
+  { color: '#60B89A', light: '#E2F5EE', dark: '#307A6A' }, // seafoam
+  { color: '#7AB8B0', light: '#E9F4F3', dark: '#4A8A82' }, // teal
+  { color: '#62A8BC', light: '#E2F2F8', dark: '#327A8A' }, // ocean blue
+  { color: '#7A8EB8', light: '#EAF0F6', dark: '#4A5E8A' }, // slate blue
+  { color: '#6A7AB8', light: '#EAEAF8', dark: '#3A4A88' }, // periwinkle
+  { color: '#7A6AB8', light: '#EAEAF8', dark: '#3A3A8A' }, // indigo
+  { color: '#9A7AB8', light: '#F0ECF8', dark: '#624A8A' }, // purple
+  { color: '#A270BC', light: '#F2E8F8', dark: '#723A8A' }, // violet
+  { color: '#B87A9A', light: '#F5EAF0', dark: '#8A4A72' }, // mauve
+  { color: '#C46884', light: '#F5E8EE', dark: '#8A3A56' }, // warm rose
 ]
 
 const SEED = [
@@ -207,20 +217,6 @@ export default function App() {
   const [movePicker, setMovePicker]       = useState(false)
   const [completedOpen, setCompletedOpen]       = useState(false)
   const [completedClosing, setCompletedClosing] = useState(false)
-  const [darkMode, setDarkMode] = useState(() => {
-    try {
-      const saved = localStorage.getItem('darkMode')
-      if (saved !== null) return JSON.parse(saved)
-    } catch {}
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
-  })
-
-  useEffect(() => {
-    if (darkMode) document.documentElement.classList.add('dark')
-    else document.documentElement.classList.remove('dark')
-    localStorage.setItem('darkMode', JSON.stringify(darkMode))
-  }, [darkMode])
-
   const closeCompleted = () => {
     setCompletedClosing(true)
     setTimeout(() => { setCompletedOpen(false); setCompletedClosing(false) }, 180)
@@ -676,7 +672,7 @@ export default function App() {
   if (!user) return <AuthScreen />
 
   return (
-    <div className="min-h-screen flex bg-[var(--bg-base)]" style={{ fontFamily: "'Inter', system-ui, sans-serif" }}>
+    <div className="flex bg-[var(--bg-base)]" style={{ fontFamily: "'Inter', system-ui, sans-serif", height: '100dvh' }}>
 
       {/* ════════ DESKTOP SIDEBAR ════════ */}
       <aside className="hidden md:flex w-60 shrink-0 flex-col bg-[var(--bg-nav)] border-r border-[var(--border-nav)]">
@@ -821,8 +817,6 @@ export default function App() {
               onSignOut={() => supabase.auth.signOut()}
               clearingIds={clearingIds}
               clearingOrderMap={clearingOrderMap}
-              darkMode={darkMode}
-              onToggleDark={() => setDarkMode(d => !d)}
             />
           )}
 
@@ -2450,7 +2444,7 @@ function SortableCatCard({ id, className = '', children }) {
 
 // ── Settings Page ──────────────────────────────────────────────────────────
 
-function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, user, onSignOut, clearingIds, clearingOrderMap, darkMode, onToggleDark }) {
+function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder, onRestoreTask, onDeleteTask, user, onSignOut, clearingIds, clearingOrderMap }) {
   const [changePwOpen, setChangePwOpen] = useState(false)
   const [pwCurrent, setPwCurrent]       = useState('')
   const [pwNew, setPwNew]               = useState('')
@@ -2727,17 +2721,6 @@ function SettingsPage({ categories, tasks, onUpdate, onDelete, onAdd, onReorder,
               Sign out
             </button>
           </div>
-
-          {/* Dark mode toggle */}
-          <button onClick={onToggleDark} className="flex items-center justify-between w-full px-4 py-3.5 border-b border-[var(--border-mod)] hover:bg-[var(--bg-hover)] transition-colors">
-            <div className="flex items-center gap-3">
-              <Moon size={16} style={{ color: '#7C9A7E' }} />
-              <span className="text-[14px] font-medium text-[var(--text-1)]">Dark Mode</span>
-            </div>
-            <div className={`w-10 h-6 rounded-full transition-colors relative ${darkMode ? 'bg-[#7C9A7E]' : 'bg-[var(--border)]'}`}>
-              <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--bg-surface)] shadow transition-transform ${darkMode ? 'translate-x-4' : 'translate-x-0.5'}`} />
-            </div>
-          </button>
 
           {/* Change password */}
           <button onClick={() => { setChangePwOpen(p => !p); setPwError(''); setPwSuccess(false) }} className="flex items-center justify-between w-full px-4 py-3.5 hover:bg-[var(--bg-hover)] transition-colors">

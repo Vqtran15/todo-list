@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from './supabase.js'
 import { ClipboardList } from 'lucide-react'
 
@@ -11,17 +11,6 @@ export default function AuthScreen() {
   const [loading, setLoading]                 = useState(false)
   const [sent, setSent]                       = useState(false)
   const [resetSent, setResetSent]             = useState(false)
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('darkMode')
-      const dark = saved !== null
-        ? JSON.parse(saved)
-        : window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
-      if (dark) document.documentElement.classList.add('dark')
-      else document.documentElement.classList.remove('dark')
-    } catch {}
-  }, [])
 
   const switchMode = m => { setMode(m); setError(''); setConfirmPassword(''); setResetSent(false) }
 

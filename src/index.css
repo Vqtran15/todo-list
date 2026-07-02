@@ -29,29 +29,6 @@ body { margin: 0; }
   --icon-dim:    #C0D0BF;
   --text-med:    #5A6B5C;
 }
-.dark {
-  --bg-base:     #141A14;
-  --bg-nav:      #1B231B;
-  --bg-surface:  #1E2A1E;
-  --bg-subtle:   #1E281E;
-  --bg-hover:    #1A261A;
-  --bg-pressed:  #243024;
-  --bg-starred:  #231F0E;
-  --border:      #283C28;
-  --border-nav:  #223022;
-  --border-sub:  #1E281E;
-  --border-mod:  #2A342A;
-  --border-hov:  #324632;
-  --border-inp:  #283C28;
-  --text-1:      #D4E8D4;
-  --text-2:      #8EA68F;
-  --text-3:      #596A5A;
-  --text-4:      #3E503F;
-  --text-5:      #3A4C3B;
-  --text-6:      #3C4E3D;
-  --icon-dim:    #354635;
-  --text-med:    #7A9A7C;
-}
 
 /* Hide scrollbar on bottom nav */
 .no-scrollbar::-webkit-scrollbar { display: none; }
